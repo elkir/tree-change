@@ -1,0 +1,160 @@
+---
+title: "First Steps - Working with rasters"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+# library(purrr)
+# library(httr)
+# library(magrittr)
+
+library(raster)
+library(rgdal)
+library(lidR)
+
+library(functional)
+library(RColorBrewer)
+
+library(furrr)
+```
+
+```{r}
+dir_data <-"../Data/lidar"
+dir_2013 <- paste(dir_data, "ETH_2013_data",sep="/")
+dir_2014 <- paste(dir_data, "NERC_2014_data",sep="/")
+dir_2013_raster <-  paste(dir_2013,"CHM_raster",sep="/")
+dir_2014_raster <-  paste(dir_2014,"CHM_raster",sep="/")
+filenames_2013 <- list.files(dir_2013_raster, full.names=TRUE)
+filenames_2014 <- list.files(dir_2014_raster, full.names=TRUE)
+test_filename <- paste(dir_2013,"CHM_raster","Danum_ETH_A_CHM_50cm_587547_sub05.tif",sep="/")
+filenames_2013
+```
+
+```{r}
+r <- raster(test_filename)
+```
+
+```{r}
+filename(r)
+hasValues(r)
+inMemory(r)
+```
+```{r,fig.width=8}
+plot(r)
+```
+```{r}
+
+raster2013 <- do.call(merge,lapply(filenames_2013, raster))
+raster2013
+```
+```{r,fig.width=16,fig.height=14}
+plot(raster2013)
+```
+```{r}
+hist(raster2013,breaks=80)
+```
+```{r}
+
+raster2014 <- do.call(merge,lapply(filenames_2014, raster))
+raster2014
+```
+```{r,fig.width=30,fig.height=14}
+extUnion <- union(raster2013@extent,raster2014@extent)
+extIntersect  <- intersect(raster2013@extent,raster2014@extent)
+both_rasters <- c(raster2013,raster2014)
+both_rasters_extended <- map(both_rasters,Curry(extend,y=extUnion))
+both_rasters_cropped <- map(both_rasters,Curry(crop,y=extIntersect))
+both_rasters_stack_extended <-do.call(stack,both_rasters_extended)
+both_rasters_stack_cropped <-do.call(stack,both_rasters_cropped)
+plot(both_rasters_stack_cropped)
+```
+```{r,fig.width=15,fig.height=14}
+both_difference <-raster2013-raster2014
+plot(both_difference,main="CHM2013-CHM2014",col= colorRampPalette(brewer.pal(11,"PiYG"))(256) )
+```
+```{r}
+treetops <- tree_detection(raster2013, lmf(10))
+crowns <- dalponte2016(raster2013,treetops,th_tree =20)()
+```
+```{r}
+crowns.watershed <- watershed(raster2013,th=10)()
+```
+
+```{r,fig.height=10}
+sizes <- c(1,2,5,10,20,50,100,200,500)
+treetops2013_all <- map(sizes,~ tree_detection(raster2013,lmf(.x)))
+```
+
+
+```{r}
+
+dir_output_treetops_2013 <- paste(dir_data,"vector","2013","treetops",sep="/")
+dir.create(dir_output_treetops_2013, recursive=T)
+write_treetops_parameters <- function(data,ws) {
+  filename <- paste0(dir_output_treetops_2013,"/","treetops_lmf_ws",ws)
+  writeOGR(data,filename,"treetops",driver="GeoJSON")
+}
+write_treetops_by_index <- function(i){
+  write_treetops_parameters(treetops_all[[i]],sizes[i])
+}
+
+seq_along(sizes) %>%
+  walk(write_treetops_by_index)
+```
+```{r}
+test_filename <- paste(dir_2013,"CHM_raster","Danum_ETH_A_CHM_50cm_587547_sub05.tif",sep="/")
+r <- raster(test_filename)
+treetops <- tree_detection(r,lmf(20))
+treetops2013 <- tree_detection(raster2013,lmf(20))
+
+```
+```{r}
+write_treetops_parameters(treetops,20)
+plot(r)
+plot(treetops, add=T)
+```
+
+```{r}
+sizes <- c(25,30)
+treetops_all <-
+  sizes %>%
+  future_map(function(ws){
+    print(paste("tree_detection ws:", ws))
+    return(tree_detection(r,lmf(ws)))
+    print (done)
+  }) %>%
+  {.}
+
+```
+```{r}
+GET("http://httpbin.org/get")
+```
+```{r}
+plot(r)
+plot(treetops_all[[1]],col="red",add=T)
+plot(r)
+plot(treetops_all[[2]],col="blue",add=T)
+```
+```{r}
+crowns <- dalponte2016(r,treetops_all[[1]],
+  th_seed = 0.45,
+  th_cr = 0.55,
+  max_cr = 40,)()
+```
+```{r}
+plot(crowns)
+plot(treetops_all[[1]],add=T,col="black")
+```
+
+```{r}
+test <- c(15:25)
+print(test)
+```
+```{r}
+
+```
+```{r}
+# define functions
+
+
+

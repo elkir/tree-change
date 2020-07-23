@@ -1,0 +1,108 @@
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+## Libraries
+library(tidyverse)
+# library(purrr)
+# library(httr)
+# library(magrittr)
+
+library(raster)
+library(rgdal)
+library(lidR)
+
+library(functional)
+library(RColorBrewer)
+
+library(furrr)
+```
+
+```{r}
+dir_data <-"../Data/lidar"
+year <- "2013"
+dirname <- paste(dir_data,"vector",year,"treetops",sep="/")
+ws <- 18
+test_filename <- paste0("treetops_lmf_ws",ws)
+test_filename_full <- paste(dirname,test_filename,sep = "/")
+# filename <- "../Data/lidar/vector/2013/treetops/treetops_lmf_ws18"
+```
+```{r}
+dir_crowns <- paste(dir_data,"raster","crowns",sep="/")
+dir.create(dir_crowns,recursive = T)
+```
+
+```{r}
+## Read underlying raster
+raster_filename <- paste(dir_data,"raster","raster2013.tif",sep="/")
+r <- raster(raster_filename)
+```
+
+
+```{r}
+treetops <- readOGR(test_filename_full)
+```
+```{r,fig.height=16,fig.width=17}
+
+
+plot(r)
+plot(treetops,add=T)
+```
+```{r}
+filename_dalponte <- paste(dir_crowns,
+                           paste0(
+                             paste(year,ws,"dalponte",
+                                sep = "_"),
+                             ".tif"
+                           ),
+                           sep="/")
+# crowns_dalponte <- dalponte2016(
+#   r,
+#   treetops,
+#   th_tree = 2,
+#   th_seed = 0.45,
+#   th_cr = 0.55,
+#   max_cr = 50,
+#   ID = "treeID"
+# )()
+# writeRaster(crowns_dalponte,filename_dalponte)
+crowns_dalponte <- raster(filename_dalponte)
+```
+```{r,fig.width=17,fig.height=16}
+plot(crowns_dalponte,col=pastel.colors(1000))
+```
+
+
+```{r}
+filename_silva <- paste(dir_crowns,
+                           paste0(
+                             paste(year,ws,"silva",
+                                sep = "_"),
+                             ".tif"
+                           ),
+                           sep="/")
+# crowns_silva <- silva2016(r,treetops)()
+# writeRaster(crowns_silva,filename_silva)
+crowns_silva <- raster(filename_silva)
+```
+```{r,fig.width=17,fig.height=16}
+plot(crowns_silva,col=pastel.colors(1000))
+```
+```{r}
+# contours <- rasterToPolygons(crowns_dalponte,dissolve = TRUE)
+```
+
+```{r}
+subsampling <- 100000
+pixel_area <- 0.5*0.5
+ncells <- r@ncols*r@nrows
+
+
+hist <- hist(crowns_dalponte,breaks=2510,plot=F, maxpixels=subsampling)
+areas <- sort(hist$counts)*ncells/subsampling*pixel_area
+plot(areas,pch=".")
+
+hist <- hist(crowns_silva,breaks=2510,plot=F, maxpixels=subsampling)
+areas <- sort(hist$counts)*ncells/subsampling*pixel_area
+points(areas,pch=".",add=T,col="red")
+```
+
+

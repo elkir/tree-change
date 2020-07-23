@@ -1,0 +1,69 @@
+```{r}
+## Libraries
+library(tidyverse)
+# library(purrr)
+# library(httr)
+# library(magrittr)
+
+library(raster)
+library(rgdal)
+library(lidR)
+
+library(functional)
+library(RColorBrewer)
+
+library(furrr)
+```
+
+```{r}
+dir_data <-"../Data/lidar"
+year <- "2013"
+
+dir_treetops <- paste(dir_data,"vector","treetops",year,sep="/")
+treetops_filenames <- list.files(dir_treetops,full.names = T,include.dirs = F)[2:length(treetops_filenames)]
+
+
+test_filename <- treetops_filenames[[4]]
+treetops_filenames
+```
+```{r}
+## Read underlying raster
+raster_filename <- paste(dir_data,"raster","raster2013.tif",sep="/")
+chm <- raster(raster_filename)
+```
+
+```{r}
+treetops <- readOGR(test_filename)
+treetops
+```
+```{r}
+treetops_all <-
+  treetops_filenames %>%
+  map(readOGR) %>%
+  {.}
+treetops_all
+```
+```{r,fig.width=16,fig.height=17}
+plot(chm)
+plot(treetops_all[[4]],add=T)
+```
+
+```{r}
+extract_heights <- function(treetops){
+  return(sort(treetops@data$Z))
+}
+treetops_heights_all <-
+  treetops_all %>%
+  map(extract_heights)
+plot(treetops_heights_all[[1]],pch=".")
+points(treetops_heights_all[[4]],pch=".",col="red")
+points(treetops_heights_all[[7]],pch=".",col="green")
+points(treetops_heights_all[[length(treetops_filenames)]],pch=".",col="blue")
+
+```
+```{r}
+
+treetops_heights <- sort(treetops@data$Z)
+plot(treetops_heights,pch=".")
+```
+

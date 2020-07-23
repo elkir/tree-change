@@ -1,0 +1,132 @@
+```{r}
+## Libraries
+library(tidyverse)
+# library(purrr)
+# library(httr)
+# library(magrittr)
+
+library(raster)
+library(rgdal)
+library(lidR)
+
+library(functional)
+library(RColorBrewer)
+
+library(glue)
+library(furrr)
+# future::plan(multiprocess)
+library(sf)
+
+```
+
+
+```{r}
+crs <- st_crs(32650)
+crs$proj4string
+```
+
+
+```{r}
+years <- c(2013,2014)
+ws <-c(20)
+```
+
+```{r}
+dir_data <-"../Data/lidar"
+
+dir_chm <- paste(dir_data,"raster",sep="/")
+dir_treetops <- paste(dir_data,"vector","treetops",years,sep="/")
+
+dir_crowns <- paste(dir_data,"raster","crowns",years,sep = "/")
+walk(dir_crowns,dir.create)
+
+filename_crowns_index <- paste(dir_data,"raster","crowns","index.txt",sep="/")
+filename_crowns_errors <- paste(dir_data,"raster","crowns","errors.txt",sep="/")
+
+```
+```{r}
+## Read rasters
+chm_filenames <- paste0(dir_chm,"/raster",years,".tif")
+chms <- map(chm_filenames,~raster(.,crs=crs$proj4string))
+```
+
+```{r}
+read_treetops <- function(year,ws){
+  filename <-paste0("treetops_lmf_ws",ws,".json")
+  filename_full <- paste(dir_data,"vector","treetops",year,filename,sep = "/")
+  readOGR(filename_full,p4s = crs$proj4string)
+}
+```
+
+```{r}
+treetops <-
+  map(years,~read_treetops(.,ws))
+```
+
+
+
+```{r}
+# # subset tall trees
+treetops <-
+  treetops %>%
+  # map(~subset(.,.$Z > 60))%>%
+  map(st_as_sf)%>%
+  {.}
+
+```
+
+```{r}
+treetops
+```
+
+```{r,fig.height=16,fig.width=17}
+# plot(chms[[1]])
+# plot(treetops[[1]]$geometry,add=T)
+```
+
+```{r,fig.height=16,fig.width=17}
+# plot(chms[[2]])
+# plot(treetops[[2]]$geometry,add=T)
+```
+```{r,fig.height=16,fig.width=17}
+plot(chms[[1]])
+plot(treetops[[1]]$geometry,add=T)
+plot(treetops[[2]]$geometry,col="red",pch="+",add=T)
+title(paste("Treetops",ws))
+```
+
+
+```{r}
+dm <- st_distance(treetops[[1]],treetops[[2]])
+dim(dm)
+```
+```{r}
+a <-
+  map(array_branch(dm,1), sort) %>%
+  as_vector() %>%
+  array(dim=rev(dim(dm))) %>%
+  t() %>%
+  # order()%>%
+  {.}
+
+
+
+```
+
+
+```{r}
+b <-a[order(a[,1]),]
+
+plot(b[,1],pch=".")
+points(b[,2],pch='.',col='red')
+title(paste("Distance to two closest trees, ordered by 1st, size",ws))
+```
+```{r}
+b <-a[order(a[,2]),]
+
+plot(b[,1],pch=".")
+points(b[,2],pch='.',col='red')
+
+title(paste("Distance to two closest trees, ordered by 2nd, size",ws))
+```
+

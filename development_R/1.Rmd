@@ -1,0 +1,50 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```{r}
+library(lidR)
+```
+
+```{r}
+dir_data <-"../Data/lidar"
+dir_ETH <- paste(dir_data, "ETH_2013_data",sep="/")
+file_test <- paste(dir_ETH, "Danum_ETH_A_587547.laz",sep="/")
+```
+```{r}
+print(file_test)
+```
+```{r}
+#LASfile <- system.file(dir_ETH,"Danum_ETH_A_587547.laz",package = "lidR")
+
+las <- readLAS(file_test,select = 'xyzc')
+print(las)
+```
+
+```{r,fig.height=8,fig.width=7}
+las <- lasnormalize(las,tin())
+raster <- grid_canopy(las,0.5,p2r(0.2))
+
+plot(raster,col=height.colors(50))
+```
+```{r}
+rasterFromFile <- function(filename){
+  las = readLAS(filename,select='xyzc')
+  las = lasnormalize(las,tin())
+  raster = grid_canopy(las,0.5,p2r(0.2))
+  return(raster)
+  }
+```
+```{r}
+raster <- rasterFromFile(file_test)
+```
+```{r,fig.height=7,fig.width=8}
+plot(raster,col=height.colors(50))
+```
+
+

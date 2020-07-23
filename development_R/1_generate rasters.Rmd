@@ -1,0 +1,43 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+```{r}
+library(lidR)
+```
+
+```{r}
+dir_data <-"../Data/lidar"
+dir_2013 <- paste(dir_data, "ETH_2013_data",sep="/")
+# dir_2014 <- paste(dir_data, "NERC_2014_data",sep="/")
+filenames_2013 <- list.files(dir_2013, full.names=TRUE)
+# filenames_2014 <- list.files(dir_2014, full.names=TRUE)
+
+```
+```{r}
+filenames_2013
+
+```
+
+```{r}
+rasterFromFile <- function(filename){
+  las = readLAS(filename,select='xyzc')
+  las = lasnormalize(las,tin())
+  raster = grid_canopy(las,0.5,p2r(0.2))
+  return(raster)
+  }
+```
+
+
+```{r}
+rasters_2013 <- lapply(filenames_2013,rasterFromFile)
+```
+```{r}
+print(rasters_2013)
+```
+```{r}
+plot(rasters_2013[[1]],col=height.colors(50))
+plot(rasters_2013[[2]],col=height.colors(50))
+```
