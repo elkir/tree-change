@@ -3,6 +3,7 @@ import pandas as pd
 from scipy import stats
 import os
 from pathlib import Path
+
 # vizualization
 import matplotlib
 import matplotlib.pyplot as plt
@@ -23,54 +24,34 @@ import rasterio.plot
 import rasterio.mask
 import geopandas as gpd
 
-from mycolors import rand_cmap
 
 from scipy.spatial import cKDTree
 
+from src.mycolors import rand_cmap
+from src.loading import Load
+from src.plots import plot_tree,plot_raster_polygon,plot_tree_hist
 
-from methods import load
 #%%
 print(f"cwd: {os.getcwd()}")
 print(f"__filename__: {os.path.dirname(__file__)}")
 
 #%%
+
 years = [2013,2014]
 wss = [20]
+
+
 #%% Directories (using Pathlib)
+
 try:
     dirpath = Path(os.path.dirname(__file__))
 except:
-    dirpath = Path(os.getcwd())
+    dirpath = Path(os.getcwd())/"development_python"
 
 dir_data = Path(f"{dirpath}/../Data/lidar")
-dir_chm = dir_data/"raster"
-dir_treetops = dir_data/"vector"/"treetops"
-dir_crowns_r = dir_data/"raster"/"crowns"
-dir_crowns_v = dir_data/"vector"/"crowns"
+load=Load(dir_data)
 
-ff_index_crowns = dir_crowns_r/"index.txt"
-print(dir_data.exists())#%%
-print(f"cwd: {os.getcwd()}")
-print(f"__filename__: {os.path.dirname(__file__)}")
-
-#%% redefine loading methods with fixed directories
-load_cr = lambda year,ws,params: load.load_cr(year,ws,params,dir=dir_crowns_v)
-load_chm = lambda year: load.load_chm(year,dir=dir_chm)
-load_tt = lambda year,ws: load.load_tt(year,ws,dir=dir_treetops)
-
-
-
-#%%
-
-# year=2013
-# ws=20
-# with fiona.open(filename,'r',crs=fiona.crs.from_epsg(32650)) as c:
-#     print(f"Driver: {c.driver}")
-#     print(f"CRS: {c.crs}")
-#     print(f"Elements: {len(c)}")
-#     print(f"Bounds: {c.bounds}")
-#     print(f"Schema: {c.schema}")
-#
+ff_index_crowns = load._dir_crowns_r/"index.txt"
 
 #%% Construct a dataframe with parameters for all the runs
 index_crowns = pd.read_csv(ff_index_crowns, sep=" ", names=["ws", "seed", "cr", "max"], index_col=False)
@@ -83,12 +64,10 @@ print(a,b,b/a)
 params = index_crowns[iValid].sample(random_state=100).iloc[0]
 print(params)
 
-
 #%% load all the data for both years
-
-tt = [load_tt(year,wss[0]) for year in years]
-cr = [load_cr(year,wss[0],params) for year in years]
-chm = [load_chm(year) for year in years]
+tt = [load.load_tt(year,wss[0]) for year in years]
+cr = [load.load_cr(year,wss[0],params) for year in years]
+chm = [load.load_chm(year) for year in years]
 chm_arr = [i.read(1,masked=True) for i in chm]
 #%% nearest neighbour methods
 def ckdnearest2(gdA, gdB):
@@ -143,6 +122,7 @@ im = crowns2.plot(ax=ax,column='dist',cmap=rcmap)
 # tt[0].plot(ax=ax,marker='+',markersize=markersize,color='r')
 # tt[1].plot(ax=ax,marker='+',markersize=markersize,color='b')
 plt.colorbar(im.collections[0],ax=ax)
+fig.suptitle("Distance to neigbours")
 plt.show()
 
 #%% Plot trees based on threshold of nn and nn2
@@ -152,6 +132,7 @@ im = crowns.plot(ax=ax,column='iDiff',cmap="Paired_r")
 tt[0].plot(ax=ax,marker='+',markersize=markersize,color='r')
 tt[1].plot(ax=ax,marker='+',markersize=markersize,color='b')
 # plt.colorbar(im.collections[0],ax=ax)
+plt.suptitle("Trees with good neighbours")
 plt.show()
 
 #%% Select some tree
@@ -164,17 +145,8 @@ fig,ax = plt.subplots(figsize=(12,12))
 im = rasterio.plot.show(chm_arr[0],transform=chm[0].transform,ax=ax)
 trees_df.geometry.boundary.plot(ax=ax,color='r',alpha=1,linewidth=1)
 # plt.colorbar(im,ax=ax)
-plt.show()
-
-#%%
-def plot_raster_polygon(raster,polygon,**kwargs): #TODO
-    out_image, out_transform = rasterio.mask.mask(raster, gpd.GeoSeries(polygon), crop=True, filled=False)
-    out_meta = raster.meta
-    out_meta.update({'driver': 'GTiff',
-                     "height": out_image.shape[1],
-                     "width": out_image.shape[2],
-                     "transform": out_transform})
-    return rasterio.plot.show(out_image, transform=out_transform,**kwargs)
+plt.suptitle("Selected tree(s) (biggest?)")
+fig.show()
 
 
 
@@ -183,20 +155,17 @@ def plot_raster_polygon(raster,polygon,**kwargs): #TODO
 # TODO write a function that extracts a tree
 r=chm[0]
 fig,ax = plt.subplots()
-box_scale=1.5
-box=shapely.affinity.scale(tree.envelope,xfact=box_scale,yfact=box_scale)
-gpd.GeoSeries(tree.boundary).plot(ax=ax,color='r',alpha=1,linewidth=1)
-plot_raster_polygon(r,tree.simplify(1),ax=ax)
-plot_raster_polygon(r,box,ax=ax,alpha=0.6)
-plt.show()
+plot_tree(r,tree,ax=ax)
+fig.suptitle("Cutout selected tree")
+fig.show()
 # rasterio.plot.show_hist(out_image)
 
 
 #%% write diff raster to a file
-ff_diff = dir_chm/f"diff.tif"
+ff_diff = load.dir_chm/f"diff.tif"
 # chm_diff = chm_arr[0]-chm_arr[1]
 # with rasterio.open(
-#         f"{dir_chm}/diff.tif",'w',driver="GTiff",**{k: chm[0].meta[k] for k in ('width','height','nodata','crs','transform','count','dtype')}) as ds:
+#         f"{load.dir_chm}/diff.tif",'w',driver="GTiff",**{k: chm[0].meta[k] for k in ('width','height','nodata','crs','transform','count','dtype')}) as ds:
 #     ds.write(chm_diff,1)
 if not ff_diff.exists():
     print("Difference file doesn't exist on a disk. It needs to be created.")
@@ -210,44 +179,46 @@ chm_diff = chm_diff_ds.read(1,masked=True)
 fig,ax = plt.subplots(figsize=(12,12))
 im= ax.imshow(chm_diff,cmap='RdBu_r',vmin=-80,vmax=80)
 plt.colorbar(im,ax=ax)
-plt.show()
+fig.suptitle("Difference between rasters")
+fig.show()
 
 #%% plot a single tree diference raster
 r=chm_diff_ds
 fig,ax = plt.subplots()
-box_scale=1.5
-box=shapely.affinity.scale(tree.envelope,xfact=box_scale,yfact=box_scale)
-gpd.GeoSeries(tree.boundary).plot(ax=ax,color='m',alpha=0.5,linewidth=1)
-im = plot_raster_polygon(r,tree,ax=ax,cmap='RdBu_r',vmin=-80,vmax=80)
-plot_raster_polygon(r,box,ax=ax,alpha=0.6,cmap='RdBu_r',vmin=-80,vmax=80)
+plot_tree(r,tree,ax=ax,
+          param_boundary=dict(color='m'),
+          param_box=dict(cmap='RdBu_r',vmin=-80,vmax=80),
+          param_polygon=dict(cmap='RdBu_r',vmin=-80,vmax=80))
 # plt.colorbar(cax=im,ax=ax) # TODO
-plt.show()
+fig.suptitle("Selected tree on the difference raster")
+fig.show()
 
-# rasterio.plot.show_hist(out_image)
 #%%  plot a single tree histogram
-plt.hist(out_image.flatten(),bins=100)
-plt.show()
-a= out_image
-# filter outliers
-q = np.quantile(out_image,[0.1,0.9])
-a_reduced = a[(a>q[0]) & (a<q[1])]
-a_stats = stats.describe(a_reduced)
+plot_tree_hist(r,tree)
+
+#%% Find change in tree height #TODO
+
+# a= out_image
+# # filter outliers
+# q = np.quantile(out_image,[0.1,0.9])
+# a_reduced = a[(a>q[0]) & (a<q[1])]
+# a_stats = stats.describe(a_reduced)
 
 #%% add cols to dataframe
 
 # treeID = 6
-for treeID in range(1):
+for treeID in [300]:
 
     tree= tt[0][tt[0].treeID==treeID]
     crown=crowns[crowns.DN==treeID].iloc[0]
     poly = crown.geometry
     poly=poly
-
-    plt.plot(*poly.exterior.xy)
-    if poly.interiors is not None:
-        for ring in poly.interiors:
-            plt.plot(*ring.xy)
-    plt.show()
+    print(poly)
+    # plt.plot(*poly.exterior.xy)
+    # if poly.interiors is not None:
+    #     for ring in poly.interiors:
+    #         plt.plot(*ring.xy)
+    # plt.show()
 
 
 #%%
@@ -263,6 +234,6 @@ crowns.geometry
 crowns = crowns.rename(columns={"DN":"treeID"}).set_index("treeID")
 
 #%%
-def sphericity(polygon):
-    length =
-    area =
+# def sphericity(polygon):
+#     length =
+#     area =
