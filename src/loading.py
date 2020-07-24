@@ -24,44 +24,60 @@ import rasterio.plot
 import rasterio.mask
 import geopandas as gpd
 
-from mycolors import rand_cmap
+from functools import partial,update_wrapper
+
+# from mycolors import rand_cmap
 
 from scipy.spatial import cKDTree
 
-class load:
+class Load:
 
 
-# # #%% Directories (using Pathlib)
-#     try:
-#         dirpath = Path(os.path.dirname(__file__))
-#     except:
-#         dirpath = Path(os.getcwd())
-#
-#     dir_data = Path(f"{dirpath}/../Data/lidar")
-#     dir_chm = dir_data/"raster"
-#     dir_treetops = dir_data/"vector"/"treetops"
-#     dir_crowns_r = dir_data/"raster"/"crowns"
-#     dir_crowns_v = dir_data/"vector"/"crowns"
-#
-#     ff_index_crowns = dir_crowns_r/"index.txt"
+    def __init__(self,dir_data):
+        '''
+        Constructs a data-loader utility, that contains paths to various folders and
+        methods that load them based on supplied parameters.
+
+        For custom or modified directory structure directories to them need
+        to be redefined after construction.
+
+        :param dir_data: location of the data folder (string or Path)
+        '''
+        self.dir_data = Path(dir_data)
+        self.dir_chm = dir_data / "raster"
+        self.dir_treetops = dir_data / "vector" / "treetops"
+        self._dir_crowns_r = dir_data / "raster" / "crowns"
+        self.dir_crowns_v = dir_data / "vector" / "crowns"
+        self.ff_index_crowns = self._dir_crowns_r / "index.txt"
+
+        self.load_chm = partial(Load.load_chm,dir=self.dir_chm)
+        self.load_cr = partial(Load.load_cr,dir=self.dir_crowns_v)
+        self.load_tt = partial(Load.load_tt,dir=self.dir_treetops)
+        update_wrapper(self.load_chm,Load.load_chm)
+        update_wrapper(self.load_cr,Load.load_cr)
+        update_wrapper(self.load_tt,Load.load_tt)
 
     @staticmethod
-    def load_tt(year,ws,dir):
+    def load_chm(year,dir):
         '''
-        load treetops from file
-        :param year:
-        :param ws:
-        :return: GeoDataFrame with treetops as entries
-        '''
+        Load CHM rasters using rasterio
 
-        ff_tt=dir/str(year)/f"treetops_lmf_ws{ws}.shp"
-        tt = gpd.read_file(ff_tt)
-        return tt
+        :param year:
+        :param dir:
+        :return: rasterio object
+        '''
+        ff_chm = dir/f"raster{year}.tif"
+
+        chm_orig = rasterio.open(ff_chm)
+        crs = rasterio.crs.CRS.from_string("EPSG:32650")
+        # Need a virtual dataset for overwriting CRS
+        chm = rasterio.vrt.WarpedVRT(chm_orig, crs)
+        return chm
 
     @staticmethod
     def load_cr(year,ws,params,dir):
         '''
-         load crown polygons from file
+         Load crown polygons from file using Geopandas
 
         :param year: int, year
         :param ws: int, window size
@@ -76,19 +92,16 @@ class load:
         cr['area']=cr.geometry.area
         cr.crs = "EPSG:32650"
         return cr
+
     @staticmethod
-    def load_chm(year,dir):
+    def load_tt(year,ws,dir):
         '''
-        load CHM rasters
-
+        Load treetops from file using geopandas.
         :param year:
-        :param dir:
-        :return: rasterio object
+        :param ws:
+        :return: GeoDataFrame with treetops as entries
         '''
-        ff_chm = dir/f"raster{year}.tif"
 
-        chm_orig = rasterio.open(ff_chm)
-        crs = rasterio.crs.CRS.from_string("EPSG:32650")
-        # Need a virtual dataset for overwriting CRS
-        chm = rasterio.vrt.WarpedVRT(chm_orig, crs)
-        return chm
+        ff_tt=dir/f"{year}/treetops_lmf_ws{ws}.shp"
+        tt = gpd.read_file(ff_tt)
+        return tt
