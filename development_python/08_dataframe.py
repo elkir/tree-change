@@ -202,15 +202,6 @@ trees_df.geometry.boundary.plot(ax=ax,color='r',alpha=1,linewidth=1)
 plt.show()
 
 #%%
-def plot_raster_polygon(raster,polygon,**kwargs): #TODO
-    out_image, out_transform = rasterio.mask.mask(raster, gpd.GeoSeries(polygon), crop=True, filled=False)
-    out_meta = raster.meta
-    out_meta.update({'driver': 'GTiff',
-                     "height": out_image.shape[1],
-                     "width": out_image.shape[2],
-                     "transform": out_transform})
-    return rasterio.plot.show(out_image, transform=out_transform,**kwargs)
-
 
 
 #%% Get tree data and plot it
