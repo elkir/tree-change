@@ -1,19 +1,9 @@
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 import os
 from pathlib import Path
-# vizualization
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import matplotlib.gridspec as gridspec
-from matplotlib import cm
-from matplotlib.colors import ListedColormap
-dpi = 300
-matplotlib.rcParams['figure.dpi'] = dpi
-markersize = 0.5*(300/dpi)
+
 
 # GIS
 import fiona
@@ -26,15 +16,11 @@ import geopandas as gpd
 
 from functools import partial,update_wrapper
 
-# from mycolors import rand_cmap
-
-from scipy.spatial import cKDTree
 
 class Load:
 
-
     def __init__(self,dir_data):
-        '''
+        """
         Constructs a data-loader utility, that contains paths to various folders and
         methods that load them based on supplied parameters.
 
@@ -42,49 +28,58 @@ class Load:
         to be redefined after construction.
 
         :param dir_data: location of the data folder (string or Path)
-        '''
-        self.dir_data = Path(dir_data)
-        self.dir_chm = dir_data / "raster"
-        self.dir_treetops = dir_data / "vector" / "treetops"
-        self._dir_crowns_r = dir_data / "raster" / "crowns"
-        self.dir_crowns_v = dir_data / "vector" / "crowns"
+        """
+        self.dir_data = Path(dir_data).resolve()
+        # self.dir_data = self.dir_data.resolve()
+        self.dir_chm = self.dir_data / "raster"
+        self.dir_diff = self.dir_chm
+        self.dir_treetops = self.dir_data / "vector" / "treetops"
+        self._dir_crowns_r = self.dir_data / "raster" / "crowns"
+        self.dir_crowns_v = self.dir_data / "vector" / "crowns"
         self.ff_index_crowns = self._dir_crowns_r / "index.txt"
 
-        self.load_chm = partial(Load.load_chm,dir=self.dir_chm)
         self.load_cr = partial(Load.load_cr,dir=self.dir_crowns_v)
         self.load_tt = partial(Load.load_tt,dir=self.dir_treetops)
-        update_wrapper(self.load_chm,Load.load_chm)
         update_wrapper(self.load_cr,Load.load_cr)
         update_wrapper(self.load_tt,Load.load_tt)
 
     @staticmethod
-    def load_chm(year,dir):
-        '''
-        Load CHM rasters using rasterio
-
-        :param year:
-        :param dir:
-        :return: rasterio object
-        '''
-        ff_chm = dir/f"raster{year}.tif"
-
-        chm_orig = rasterio.open(ff_chm)
+    def load_raster(filepath):
+        r_orig = rasterio.open(filepath)
         crs = rasterio.crs.CRS.from_string("EPSG:32650")
         # Need a virtual dataset for overwriting CRS
-        chm = rasterio.vrt.WarpedVRT(chm_orig, crs)
-        return chm
+        r = rasterio.vrt.WarpedVRT(r_orig, crs)
+        return r
+
+
+    def load_chm(self,year):
+        """
+        Load CHM rasters using rasterio.
+
+        Filenaming convention rasterYYYY.tif.
+        :param year:
+        :return: rasterio object
+        """
+        return Load.load_raster(self.dir_chm/f"raster{year}.tif")
+
+    def load_diff(self):
+        return Load.load_raster(self.dir_diff/"diff.tif")
+
+
+
+
 
     @staticmethod
-    def load_cr(year,ws,params,dir):
-        '''
+    def load_cr(year,params,dir):
+        """
          Load crown polygons from file using Geopandas
 
         :param year: int, year
-        :param ws: int, window size
-        :param params: parameters of dalponte, in a Series
+        :param params: parameters of dalponte and window size, in a Series
         :return: GeoDataFrame with crown (multi)polygons
-        '''
-        f_crowns = f"dalponte_{year}_{ws}_seed{params['seed']:.5f}" \
+        """
+
+        f_crowns = f"dalponte_{year}_{params['ws']:.0f}_seed{params['seed']:.5f}" \
                    f"_cr{params['cr']:.6f}_max{params['max']:.3f}.json"  # TODO fix number of figures
         ff_crowns = dir/str(year)/f_crowns
         # print(os.path.exists(ff_crowns))
@@ -95,13 +90,13 @@ class Load:
 
     @staticmethod
     def load_tt(year,ws,dir):
-        '''
+        """
         Load treetops from file using geopandas.
         :param year:
         :param ws:
         :return: GeoDataFrame with treetops as entries
-        '''
+        """
 
-        ff_tt=dir/f"{year}/treetops_lmf_ws{ws}.shp"
+        ff_tt=dir/f"{year}/treetops_lmf_ws{ws:.0f}.shp"
         tt = gpd.read_file(ff_tt)
         return tt

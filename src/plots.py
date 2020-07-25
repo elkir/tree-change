@@ -124,3 +124,16 @@ def plot_tree_hist(raster,tree,ax=None,bins=50,**hist_kwargs):
     if show:
         plt.show()
     return ax
+
+def plot_raster(raster,ax=None,**kwargs):
+    show = False
+    if ax is None:
+        show = True
+        ax = plt.gca()
+
+    ax.imshow(raster,**kwargs)
+
+
+    if show:
+        plt.show()
+    return ax

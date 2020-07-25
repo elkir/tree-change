@@ -105,8 +105,7 @@ iDiff = diff>9
 iDiff = iDiff.rename('iDiff')
 crowns = pd.concat([cr[0],nn['dist'],nn['dist2'],diff,iDiff],axis=1)
 crowns2 = crowns
-crowns2['geometry'] = crowns.geometry\
-    .exterior
+crowns2['geometry'] = crowns.geometry.exterior
     # .apply(lambda x: shapely.geometry.Polygon(x.exterior))\
     # .apply(lambda x: x.simplify(1)).exterior
 

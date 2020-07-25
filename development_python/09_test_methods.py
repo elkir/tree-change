@@ -9,8 +9,8 @@ from src.plots import plot_tree,plot_raster_polygon
 import matplotlib.pyplot as plt
 
 #%%
-raster = Load.load_chm(2013,dir=data/'raster')
-crowns = Load.load_cr(2013,20,dict(ws=20,seed=0.2644331,cr=0.7269062,max=59.41157),dir=data/'vector'/'crowns')
+raster = Load.load_raster(data/"raster"/"raster2013.tif")
+crowns = Load.load_cr(2013,dict(ws=20,seed=0.2644331,cr=0.7269062,max=59.41157),dir=data/'vector'/'crowns')
 
 treeS = crowns.iloc[200]
 treeGDF = crowns.sample()
