@@ -1,5 +1,19 @@
 #mycolors.py
 
+txt_sty ={
+    "PURPLE" : '\033[95m',
+    "CYAN" : '\033[96m',
+    "DARKCYAN" : '\033[36m',
+    "BLUE" : '\033[94m',
+    "GREEN" : '\033[92m',
+    "YELLOW" : '\033[93m',
+    "RED" : '\033[91m',
+    "BOLD" : '\033[1m',
+    "UNDERLINE" : '\033[4m',
+    "END" : '\033[0m'
+}
+
+
 def rand_cmap(nlabels, type='bright', first_color_black=False, last_color_black=False, verbose=False, f=0.95):
     """
     Creates a random colormap to be used together with matplotlib. Useful for segmentation tasks
@@ -35,8 +49,8 @@ def rand_cmap(nlabels, type='bright', first_color_black=False, last_color_black=
 
         if first_color_black:
             randRGBcolors[0] = [0, 0, 0]
-
         if last_color_black:
+
             randRGBcolors[-1] = [0, 0, 0]
 
         random_colormap = LinearSegmentedColormap.from_list('new_map', randRGBcolors, N=nlabels)
