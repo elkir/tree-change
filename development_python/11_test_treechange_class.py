@@ -29,7 +29,7 @@ from scipy.spatial import cKDTree
 
 from src.mycolors import rand_cmap
 from src.loading import Load
-from src.plots import plot_tree,plot_raster_polygon,plot_tree_hist
+import src.plots as plots
 from src.mycolors import rand_cmap
 from src.treechange import TreeChange
 
@@ -68,79 +68,81 @@ tc.print()
 #%% Random colormap definition
 rcmap = rand_cmap(1000,'bright',verbose=False)
 
-#%% Plot absolute difference between nn and nn2
-dim = 16
-fig,ax = plt.subplots(figsize=(dim,dim))
-im = tc.df.plot(ax=ax,column='diff',cmap='magma_r')
+# #%% Plot absolute difference between nn and nn2
+# dim = 16
+# fig,ax = plt.subplots(figsize=(dim,dim))
+# im = tc.df.plot(ax=ax,column='diff',cmap='magma_r')
+# # tc._tt[0].plot(ax=ax,marker='+',markersize=markersize,color='r')
+# # tc._tt[1].plot(ax=ax,marker='+',markersize=markersize,color='b')
+# plt.colorbar(im.collections[0],ax=ax)
+# fig.suptitle("Distance to neigbours")
+# plt.show()
+
+# #%% Plot trees based on threshold of nn and nn2
+#
+# fig,ax = plt.subplots(figsize=(4,4))
+# im = tc.df.plot(ax=ax,column='i_diff',cmap="Paired_r")
 # tc._tt[0].plot(ax=ax,marker='+',markersize=markersize,color='r')
 # tc._tt[1].plot(ax=ax,marker='+',markersize=markersize,color='b')
-plt.colorbar(im.collections[0],ax=ax)
-fig.suptitle("Distance to neigbours")
-plt.show()
-
-#%% Plot trees based on threshold of nn and nn2
-
-fig,ax = plt.subplots(figsize=(4,4))
-im = tc.df.plot(ax=ax,column='i_diff',cmap="Paired_r")
-tc._tt[0].plot(ax=ax,marker='+',markersize=markersize,color='r')
-tc._tt[1].plot(ax=ax,marker='+',markersize=markersize,color='b')
-# plt.colorbar(im.collections[0],ax=ax)
-plt.suptitle("Trees with good neighbours")
-plt.show()
-
-
-
+# # plt.colorbar(im.collections[0],ax=ax)
+# plt.suptitle("Trees with good neighbours")
+# plt.show()
 #
-# #%% Select some tree
-# # trees_df = cr[0][cr[0]['DN']==700]
-# trees_df = cr[0].iloc[[cr[0].geometry.area.argmax()]] # biggest tree
-# # trees_df = cr[0].iloc[[300]]
-# tree=trees_df.iloc[0].geometry
-#
+
+
+
+#%% Select some tree
+# trees_df = cr[0][cr[0]['DN']==700]
+trees_df = tc.df.iloc[[tc.df.geometry.area.argmax()]] # biggest tree
+# trees_df = cr[0].iloc[[300]]
+tree=trees_df.geometry
+
+# #%% Plot its location
 # fig,ax = plt.subplots(figsize=(12,12))
-# im = rasterio.plot.show(chm_arr[0],transform=chm[0].transform,ax=ax)
-# trees_df.geometry.boundary.plot(ax=ax,color='r',alpha=1,linewidth=1)
+# im = plots.plot_raster(tc.chm.old,ax=ax)
+# gpd.GeoSeries(trees_df.geometry.boundary).plot(ax=ax,color='r',linewidth=1)
 # # plt.colorbar(im,ax=ax)
 # plt.suptitle("Selected tree(s) (biggest?)")
 # fig.show()
-#
-#
-#
-# #%% Get tree data and plot it
-#
-# # TODO write a function that extracts a tree
-# r=chm[0]
-# fig,ax = plt.subplots()
-# plot_tree(r,tree,ax=ax)
-# fig.suptitle("Cutout selected tree")
-# fig.show()
-# # rasterio.plot.show_hist(out_image)
-#
-#
-#
-# #%% plot difference raster
-# fig,ax = plt.subplots(figsize=(12,12))
-# im= ax.imshow(chm_diff,cmap='RdBu_r',vmin=-80,vmax=80)
-# plt.colorbar(im,ax=ax)
-# fig.suptitle("Difference between rasters")
-# fig.show()
-#
-# #%% plot a single tree diference raster
-# r=chm_diff_ds
-# fig,ax = plt.subplots()
-# plot_tree(r,tree,ax=ax,
-#           param_boundary=dict(color='m'),
-#           param_box=dict(cmap='RdBu_r',vmin=-80,vmax=80),
-#           param_polygon=dict(cmap='RdBu_r',vmin=-80,vmax=80))
-# # plt.colorbar(cax=im,ax=ax) # TODO
-# fig.suptitle("Selected tree on the difference raster")
-# fig.show()
-#
-# #%%  plot a single tree histogram
-# plot_tree_hist(r,tree)
-#
-# #%% Find change in tree height #TODO
-#
+
+#%%
+
+#%% Get tree data and plot it
+
+# TODO write a function that extracts a tree
+r=tc.chm.old
+fig,ax = plt.subplots()
+plots.plot_tree(r,tree,ax=ax)
+fig.suptitle("Cutout selected tree")
+fig.show()
+# rasterio.plot.show_hist(out_image)
+#%%
+
+
+#%% plot difference raster
+fig,ax = plt.subplots(figsize=(12,12))
+
+plots.plot_raster(tc.diff,ax=ax,cmap='RdBu_r',vmin=-80,vmax=80)
+plt.colorbar(ax.images[0],ax=ax)
+fig.suptitle("Difference between rasters")
+fig.show()
+
+#%% plot a single tree diference raster
+fig,ax = plt.subplots()
+plots.plot_tree(tc.diff,tree,ax=ax,
+          param_boundary=dict(color='m'),
+          param_box=dict(cmap='RdBu_r',vmin=-80,vmax=80),
+          param_polygon=dict(cmap='RdBu_r',vmin=-80,vmax=80))
+# plt.colorbar(cax=im,ax=ax) # TODO
+fig.suptitle("Selected tree on the difference raster")
+fig.show()
+
+#%%  plot a single tree histogram
+plt.close()
+plots.plot_tree_hist(tc.diff,tree,rwidth=0.9)
+
+#%% Find change in tree height #TODO
+
 # # a= out_image
 # # # filter outliers
 # # q = np.quantile(out_image,[0.1,0.9])
@@ -162,25 +164,6 @@ plt.show()
 #     #     for ring in poly.interiors:
 #     #         plt.plot(*ring.xy)
 #     # plt.show()
-#
-#
-# #%%
-#
-# (
-# crowns.geometry
-#     .apply(lambda x: shapely.geometry.Polygon(x.exterior))
-#     .apply(lambda x: len(x.interiors)==0)
-#     .describe()
-# )
-#
-# #%%
-# crowns = crowns.rename(columns={"DN":"treeID"}).set_index("treeID")
-#
-# #%%
-# # def sphericity(polygon):
-# #     length =
-# #     area =
-#
 
 
 
