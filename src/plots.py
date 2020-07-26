@@ -10,8 +10,7 @@ from copy import copy
 
 from pandas import Series
 from shapely.geometry import Polygon
-from geopandas import GeoDataFrame
-
+import geopandas as gpd
 
 def plot_raster_polygon(raster,polygon,ax=None,**kwargs): #TODO
     '''
@@ -36,13 +35,18 @@ def plot_raster_polygon(raster,polygon,ax=None,**kwargs): #TODO
 
 
 def _polygon_from_treeObj(treeObj):
-    if isinstance(treeObj, GeoDataFrame):
+    if isinstance(treeObj, gpd.base.GeoPandasBase):
         l = len(treeObj)
         if l == 1:
-            tree = treeObj.iloc[0].geometry
+            if isinstance(treeObj,gpd.GeoDataFrame):
+                tree = treeObj.iloc[0].geometry
+            elif isinstance(treeObj,gpd.GeoSeries):
+                tree = treeObj.iloc[0]
+            else:
+                raise TypeError("Only GeoSeries and GeoDataFrame are supported.")
         else:
-            raise TypeError(f"The treeObj was a GeoDataFrame with length {l}. "
-                            f"Only a single tree as a Polygon, single-row-GDF or Series"
+            raise TypeError(f"The treeObj was a GeoPandas object with length {l}. "
+                            f"Only a single tree as a Polygon, single-row-GDF/GS or Series"
                             f" containing a Polygon are supported.")
     elif isinstance(treeObj, Series):
         tree = treeObj.geometry
@@ -131,9 +135,12 @@ def plot_raster(raster,ax=None,**kwargs):
         show = True
         ax = plt.gca()
 
-    ax.imshow(raster,**kwargs)
+    ax =rasterio.plot.show(raster,ax=ax,**kwargs)
 
 
     if show:
         plt.show()
     return ax
+
+def plot_raster_cbar():
+    ...

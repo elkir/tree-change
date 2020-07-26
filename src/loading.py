@@ -46,10 +46,12 @@ class Load:
     @staticmethod
     def load_raster(filepath):
         r_orig = rasterio.open(filepath)
-        crs = rasterio.crs.CRS.from_string("EPSG:32650")
-        # Need a virtual dataset for overwriting CRS
-        r = rasterio.vrt.WarpedVRT(r_orig, crs)
-        return r
+        #TODO is ignoring CRS when importing rasters problem?
+        # crs = rasterio.crs.CRS.from_string("EPSG:32650")
+        # # Need a virtual dataset for overwriting CRS
+        # r = rasterio.vrt.WarpedVRT(r_orig, crs)
+        #
+        return r_orig
 
 
     def load_chm(self,year):

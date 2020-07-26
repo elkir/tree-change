@@ -36,12 +36,13 @@ from scipy.spatial import cKDTree
 from src.mycolors import rand_cmap,txt_sty
 from src.loading import Load
 from src.plots import plot_tree,plot_raster_polygon,plot_tree_hist
-
+import src.utils as utils
 
 Pair = namedtuple('Pair',"old new")
 
 
 class TreeChange():
+    test_var =3
 
     def __init__(self,dir_data,years): #TODO infer years
 
@@ -60,6 +61,7 @@ class TreeChange():
         self.df_params = None
         #flags
         self.flag_neighbours = False
+        self.flag_interiors = None
 
     # def __repr__(self):
     #     #TODO with new lines
@@ -82,6 +84,8 @@ class TreeChange():
                         continue
                     printb(f"\t\t{k+':':20} {v}")
 
+        printb(f"Years:\t{self.year or 'Not specified yet'}")
+
         printb(f"Runs:")
         if self.runs_index is None:
             printb(f"\tRuns not loaded")
@@ -89,8 +93,8 @@ class TreeChange():
             printb(f"\tNumber: {len(self.runs_index)}")
             printb(f"\tWS: {self.runs_index.ws.value_counts().sort_index().to_dict().__repr__()}")
 
-        printb(f"Years:\t{self.year or 'Not specified yet'}")
-
+        printb(f"Parameters loaded:")
+        printb("\t".join(f"{self.df_params}".splitlines(True)))
         printb(f"Rasters:")
         printb(f"\t{self.chm if self.chm is not None else 'Not loaded'}")
 
@@ -98,6 +102,7 @@ class TreeChange():
         if self.df is None:
             printb(f"\tNot constructed")
         else:
+            printb(f"\thas interiors? {utils.bool_to_word(self.flag_interiors)}")
             printb(f"\tRows:\t {self.df.shape[0]}")
             printb(f"\tColumns:\t {self.df.shape[1]}")
             printb(f"\t\t{self.df.columns.to_list()}")
@@ -135,6 +140,7 @@ class TreeChange():
 
     def load_data(self,params,create_diff=False,keep_interior=False):
         self.df_params = params
+        self.flag_interiors = keep_interior
         self._tt = Pair(*(self.load.load_tt(y, self.df_params['ws']) for y in self.year))
         self._cr = Pair(*(self.load.load_cr(y, self.df_params) for y in self.year))
         self.chm = Pair(*(self.load.load_chm(y) for y in self.year))
@@ -149,8 +155,8 @@ class TreeChange():
 
         self.df = self._cr.old.copy()
         self.df = self.df.rename(columns={"DN": "treeID"}).set_index("treeID")
-        if not(keep_interior):
-            self.df['geometry'] = self.df.geometry.exterior
+        if not(self.flag_interiors):
+            self.df['geometry'] = self.df.geometry.exterior.map(lambda x: shapely.geometry.Polygon(x))
 
     def create_diff(self):
         ff_diff = self.load.dir_diff / f"diff.tif"
@@ -165,6 +171,7 @@ class TreeChange():
 
         return self.load.load_diff()
 
+    # Expand DataFrame
     def find_missing_trees(self):
         ...
 
@@ -210,6 +217,65 @@ class TreeChange():
                 self.df = pd.concat([self.df,neighbours], axis=1)
                 self.flag_neighbours=True
 
+    def characterize_polygons(self):
+        ...
+        # area
+        # perimeter
+        # convex_perimeter
+        # convex_area
+        # major_axis
+        # minor_axis
+        # compactness
+        # eccentricity
+        # circularity
+        # sphericity
+        # convexity
+        # curl  # fibre length?
+        # solidity
+        # circular_variance  # different from sphericity?
+        # bending_energy
+        #
+        # major_axis_angle
+        #
+        # # requires values
+        # moments
+    def generate_tree_rasters(self,source=['old'],overwrite=False, cropped=True):
+
+        def _mask_tree(tree,raster,raster_arr,cropped):
+            m, t, w = rasterio.mask.raster_geometry_mask(raster,[tree], crop=cropped)
+            if cropped:
+                raster_arr = raster_arr[w.toslices()]
+            m = m.logical_or(raster_arr.mask)
+            ma = np.ma.masked_array(raster_arr, mask=m)
+            return ma  #note transformation t is being discarded
+
+        def _generate_tree_rasters_single(raster,raster_arr,raster_name,overwrite,cropped):
+            col_name = f"{raster_name}_img"
+
+            if col_name in self.df.columns and not(overwrite):
+                return
+
+            fun = lambda tree: _mask_tree(tree,raster,raster_arr,cropped)
+            tree_rasters = self.df.geometry.map(fun)
+            tree_rasters.rename(col_name,inplace=True)
+
+            if (col_name in self.df.columns) and overwrite:
+                self.df.update(tree_rasters,overwrite=True)
+            else: #col_name not in df
+                self.df[col_name] = tree_rasters
+
+        keys = dict(
+            old={"raster":self.chm.old,"raster_arr":self._chm_arr.old},
+            new={"raster":self.chm.new,"raster_arr":self._chm_arr.new},
+            dif={"raster":self.diff,"raster_arr":self._diff_arr}
+        )
+
+        for k,v in keys.items():
+            if k in source:
+                _generate_tree_rasters_single(v["raster"],v["raster_arr"],k,overwrite,cropped)
+        return
+
+
     # Plots
     def plot_raster(self):
         ...
@@ -222,26 +288,4 @@ class TreeChange():
         #TODO
         ...
 
-    def characterize_polygons(self):
 
-
-        area
-        perimeter
-        convex_perimeter
-        convex_area
-        major_axis
-        minor_axis
-        compactness
-        eccentricity
-        circularity
-        sphericity
-        convexity
-        curl #fibre length?
-        solidity
-        circular_variance # different from sphericity?
-        bending_energy
-
-        major_axis_angle
-
-        #requires values
-        moments
