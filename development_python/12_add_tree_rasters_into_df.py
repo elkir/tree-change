@@ -60,12 +60,28 @@ tc.match_trees()
 
 tc.print()
 
-
+tc.generate_tree_rasters()
+tc.print()
+tc.generate_tree_rasters(["old", "new", "diff"])
+tc.print()
 #
 # print(tc._tt)
 # print(tc._cr)
 # print(tc.chm)
+#%%
+sample_imgs = tc.df.sample()[['old_img', 'new_img', 'diff_img']].values.flatten().tolist()
 
+fig,axes = plt.subplots(1,3)
+for i,ax in enumerate(axes):
+   ax.imshow(sample_imgs[i])
+fig.show()
+
+data = tc.df.old_img.map(np.mean).sort_values()
+plt.plot(data.values);plt.show()
+
+data =tc.df.diff_img.map(np.mean).sort_values()
+plt.plot(data.values);plt.show()
+plt.bar(range(len(data)),data.values);plt.show()
 
 
 
