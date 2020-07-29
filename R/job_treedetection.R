@@ -13,10 +13,13 @@ library(RColorBrewer)
 library(furrr)
 future::plan(multiprocess)
 
+#TODO genearalize for any data folder and any years
+
+
 # directories
-dir_data <-"/home/lune/Data/ai4er/mres/lidar"
-dir_2013 <- paste(dir_data, "ETH_2013_data",sep="/")
-dir_2014 <- paste(dir_data, "NERC_2014_data",sep="/")
+dir_data <-"../Data/lidar/danum"
+dir_2013 <- paste(dir_data,"original_data", "ETH_2013_data",sep="/")
+dir_2014 <- paste(dir_data,"original_data", "NERC_2014_data",sep="/")
 dir_2013_raster <-  paste(dir_2013,"CHM_raster",sep="/")
 dir_2014_raster <-  paste(dir_2014,"CHM_raster",sep="/")
 filenames_2013 <- list.files(dir_2013_raster, full.names=TRUE)
@@ -30,20 +33,21 @@ filenames_2014 <- list.files(dir_2014_raster, full.names=TRUE)
 # rasters <- future_map(rasters,Curry(crop,y=extIntersect))
 
 ## Load rasters
-raster2013 = raster(paste(dir_data,"raster","raster2013.tif",sep="/"))
-raster2014 = raster(paste(dir_data,"raster","raster2014.tif",sep="/"))
+raster2013 = raster(paste(dir_data,"rasters","raster2013.tif",sep="/"))
+raster2014 = raster(paste(dir_data,"rasters","raster2014.tif",sep="/"))
 
 
 rasters <- c("2013"=raster2013,"2014"=raster2014)
 
 # define functions
 write_treetops_parameters <- function(data, year,ws) {
-  dirname <- paste(dir_data,"vector","treetops",year,sep="/")
+  dirname <- paste(dir_data,"treetops",year,sep="/")
   filename <- paste0(dirname,"/","treetops_lmf_ws",ws,".json")
   writeOGR(data,
            filename,
            paste0(year,"_ws",ws),
            driver="GeoJSON")
+            #FIXME write in "ESRI Shapefile" s to preserve CRS
 }
 
 
@@ -68,7 +72,7 @@ sizes <- c(15,16,19,24)
 
 
 # prepare output directories
-dir_output_treetops <- paste(dir_data,"vector","treetops",years,sep="/")
+dir_output_treetops <- paste(dir_data,"treetops",years,sep="/")
 walk(dir_output_treetops,~dir.create(., recursive=T))
 
 ## paralelize years

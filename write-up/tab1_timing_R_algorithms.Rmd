@@ -1,0 +1,77 @@
+```{r}
+## Libraries
+library(tidyverse)
+# library(purrr)
+# library(httr)
+# library(magrittr)
+
+library(raster)
+library(rgdal)
+library(lidR)
+library(spatial)
+library(stars)
+library(sf)
+
+library(functional)
+library(RColorBrewer)
+
+library(glue)
+library(furrr)
+
+library(tictoc)
+# future::plan(multiprocess)
+```
+
+```{r}
+years <- c(2013,2014)
+ws <-c(20)
+```
+
+```{r}
+
+dir_data <-"/home/code/ai4er/mres/Data/lidar/danum"
+```
+```{r}
+dir_chm <- paste(dir_data,"rasters",sep="/")
+dir_treetops <- paste(dir_data,"treetops",years,sep="/")
+
+dir_crowns_r <- paste(dir_data,"crowns","raster",years,sep = "/")
+walk(dir_crowns,dir.create)
+
+filename_crowns_index <- paste(dir_data,"index.txt",sep="/")
+filename_crowns_errors <- paste(dir_data,"errors.txt",sep="/")
+
+```
+```{r}
+## Read rasters
+chm_filenames <- paste0(dir_chm,"/raster",years,".tif")
+chms <- map(chm_filenames,raster)
+```
+
+```{r}
+tic()
+tt5 = lidR::tree_detection(chms[[1]],lmf(5))
+toc()
+
+tic()
+tt20 = lidR::tree_detection(chms[[1]],lmf(20))
+toc()
+
+tic()
+tt30 = lidR::tree_detection(chms[[1]],lmf(30))
+toc()
+
+```
+```{r}
+tic()
+cr_d = dalponte2016(chms[[1]],tt20,max_cr = 50)()
+toc()
+
+tic()
+cr_s = silva2016(chms[[1]],tt20,max_cr_factor = 0.4)() 
+toc()
+```
+
+
+
+

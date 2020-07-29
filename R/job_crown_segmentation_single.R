@@ -22,16 +22,16 @@ ws <-c(15,16,17,18,19,21,22,23,24,25)
 
 
 ## Directories
-dir_data <-"../Data/lidar"
+dir_data <- "../Data/lidar/danum"
 
-dir_chm <- paste(dir_data,"raster",sep="/")
-dir_treetops <- paste(dir_data,"vector","treetops",years,sep="/")
+dir_chm <- paste(dir_data,"rasters",sep="/")
+dir_treetops <- paste(dir_data,"treetops",years,sep="/")
 
-dir_crowns <- paste(dir_data,"raster","crowns",years,sep = "/")
+dir_crowns <- paste(dir_data,"crowns","raster",years,sep = "/")
 walk(dir_crowns,dir.create)
 
-filename_crowns_index <- paste(dir_data,"raster","crowns","index.txt",sep="/")
-filename_crowns_errors <- paste(dir_data,"raster","crowns","errors.txt",sep="/")
+filename_crowns_index <- paste(dir_data,"index.txt",sep="/")
+filename_crowns_errors <- paste(dir_data,"errors.txt",sep="/")
 
 
 
@@ -61,7 +61,7 @@ glue_fmt <- function(..., .envir = parent.frame()) {
 
 read_treetops <- function(year,ws){
   filename <-paste0("treetops_lmf_ws",ws,".shp") # SHP of JSON?
-  filename_full <- paste(dir_data,"vector","treetops",year,filename,sep = "/")
+  filename_full <- paste(dir_data,"treetops",year,filename,sep = "/")
   readOGR(filename_full)
 }
 
@@ -82,7 +82,11 @@ single_run <- function(iYear,ws,th_seed,th_cr,max_cr){
   
   # write GeoTIFF to file and parameters to the index
   #FIXME ERROR!!!!
-  filename <- glue_fmt("dalponte_{year}_{ws}_seed{th_seed:.5}_cr{th_cr:.5}_max{max_cr:.3}.tif") # TODO fix decimal dot and printf rounding problem
+  # When rounding, it doesn't use the banker's rounding, rounding towards even.
+  # This means it's inconsistent with Python loaders
+  filename <- glue_fmt("dalponte_{year}_{ws}_seed{th_seed:.5}_cr{th_cr:.5}_max{max_cr:.3}.tif")
+  #FIXME ^^^
+
   filename_full <- paste(dir_crowns[[iYear]],filename,sep = "/")
   print(filename_full)
   writeRaster(crowns,filename_full,overwrite=T)
