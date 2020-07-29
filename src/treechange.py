@@ -90,19 +90,24 @@ class TreeChange():
         if self.runs_index is None:
             printb(f"\tRuns not loaded")
         else:
+            printb(f"\tfile: {self.load.ff_index_crowns.relative_to(self.load.dir_data)}")
             printb(f"\tNumber: {len(self.runs_index)}")
             printb(f"\tWS: {self.runs_index.ws.value_counts().sort_index().to_dict().__repr__()}")
 
         printb(f"Parameters loaded:")
-        printb("\t".join(f"{self.df_params}".splitlines(True)))
+        printb("\n\t".join(f"\t{self.df_params}".splitlines()[:-1]))
         printb(f"Rasters:")
-        printb(f"\t{self.chm if self.chm is not None else 'Not loaded'}")
-
+        if self.chm is None:
+            printb('Not loaded')
+        else:
+            for k,v in self.chm._asdict().items():
+                printb(f"\t{k}: {Path(v.name).relative_to(self.load.dir_data)}")
+            printb(f"\tdiff: {Path(self.diff.name).relative_to(self.load.dir_data) if self.diff is not None else 'unavailable'}")
         printb(f"Dataframe:")
         if self.df is None:
             printb(f"\tNot constructed")
         else:
-            printb(f"\thas interiors? {utils.bool_to_word(self.flag_interiors)}")
+            printb(f"\tPolygon interiors: {utils.bool_to_word(self.flag_interiors)}")
             printb(f"\tRows:\t {self.df.shape[0]}")
             printb(f"\tColumns:\t {self.df.shape[1]}")
             printb(f"\t\t{self.df.columns.to_list()}")
@@ -134,10 +139,6 @@ class TreeChange():
         return self.runs_index if return_value else None
 
 
-
-
-
-
     def load_data(self,params,create_diff=False,keep_interior=False):
         self.df_params = params
         self.flag_interiors = keep_interior
@@ -147,11 +148,14 @@ class TreeChange():
         self._chm_arr = Pair(*(x.read(1,masked=True) for x in self.chm))
         try:
             self.diff = self.load.load_diff()
+            self._diff_arr = self.diff.read(1,masked=True)
         except FileNotFoundError:
             print("Diff didn't exist on disk and couldn't be loaded. "
-                  "Set createNewDiff True when loading to create it.")
+                  "Set create_diff True when loading to create it.")
             if create_diff:
-                self.diff = self.createDiff()
+                self.createDiff()
+                self.diff = self.load.load_diff()
+                self._diff_arr = self.diff.read(1, masked=True)
 
         self.df = self._cr.old.copy()
         self.df = self.df.rename(columns={"DN": "treeID"}).set_index("treeID")
@@ -168,8 +172,6 @@ class TreeChange():
                 'width', 'height', 'nodata', 'crs', 'transform', 'count', 'dtype')}
         ) as ds:
             ds.write(diff_arr, 1)
-
-        return self.load.load_diff()
 
     # Expand DataFrame
     def find_missing_trees(self):
@@ -207,7 +209,7 @@ class TreeChange():
 
         #TODO
         if not(self.flag_neighbours) or overwrite:
-            nn = cKDnearest2(*self._tt)
+            nn = cKDnearest2(*self._tt).set_index(self.df.index)
             diff = nn['dist2'] - nn['dist']
             i_diff = diff > 9 #TODO infer boundary
             neighbours = pd.DataFrame(dict(nn=nn['dist'], nn2=nn['dist2'], diff=diff, i_diff=i_diff))
@@ -245,7 +247,7 @@ class TreeChange():
             m, t, w = rasterio.mask.raster_geometry_mask(raster,[tree], crop=cropped)
             if cropped:
                 raster_arr = raster_arr[w.toslices()]
-            m = m.logical_or(raster_arr.mask)
+            m = np.logical_or(m,raster_arr.mask)
             ma = np.ma.masked_array(raster_arr, mask=m)
             return ma  #note transformation t is being discarded
 
@@ -267,7 +269,7 @@ class TreeChange():
         keys = dict(
             old={"raster":self.chm.old,"raster_arr":self._chm_arr.old},
             new={"raster":self.chm.new,"raster_arr":self._chm_arr.new},
-            dif={"raster":self.diff,"raster_arr":self._diff_arr}
+            diff={"raster":self.diff,"raster_arr":self._diff_arr}
         )
 
         for k,v in keys.items():
@@ -287,5 +289,9 @@ class TreeChange():
     def plot_tree_hist(self):
         #TODO
         ...
+
+
+class SegmentationRun():
+
 
 

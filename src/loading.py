@@ -81,8 +81,7 @@ class Load:
         :return: GeoDataFrame with crown (multi)polygons
         """
 
-        f_crowns = f"dalponte_{year}_{params['ws']:.0f}_seed{params['seed']:.5f}" \
-                   f"_cr{params['cr']:.6f}_max{params['max']:.3f}.json"  # TODO fix number of figures
+        f_crowns = Load.filename_from_params(year,params)
         ff_crowns = dir/str(year)/f_crowns
         # print(os.path.exists(ff_crowns))
         cr = gpd.read_file(ff_crowns)
@@ -102,3 +101,9 @@ class Load:
         ff_tt=dir/f"{year}/treetops_lmf_ws{ws:.0f}.shp"
         tt = gpd.read_file(ff_tt)
         return tt
+
+    @staticmethod
+    def filename_from_params(year,params):
+
+        return f"dalponte_{year}_{params['ws']:.0f}_seed{params['seed']:.5f}" \
+                   f"_cr{params['cr']:.6f}_max{params['max']:.3f}.json"  # TODO fix number of figures
