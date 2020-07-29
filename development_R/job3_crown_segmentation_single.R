@@ -81,7 +81,8 @@ single_run <- function(iYear,ws,th_seed,th_cr,max_cr){
   )()
   
   # write GeoTIFF to file and parameters to the index
-  filename <- glue_fmt("dalponte_{year}_{ws}_seed{th_seed:.5}_cr{th_cr:.5}_max{max_cr:.3}.tif") # TODO fix decimal dot
+  #FIXME ERROR!!!!
+  filename <- glue_fmt("dalponte_{year}_{ws}_seed{th_seed:.5}_cr{th_cr:.5}_max{max_cr:.3}.tif") # TODO fix decimal dot and printf rounding problem
   filename_full <- paste(dir_crowns[[iYear]],filename,sep = "/")
   print(filename_full)
   writeRaster(crowns,filename_full,overwrite=T)
