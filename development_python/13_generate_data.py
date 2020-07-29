@@ -26,16 +26,13 @@ try:
 except:
     dirpath = Path(os.getcwd())/"development_python"
 
-dir_data = Path(f"{dirpath}/../Data/lidar")
+dir_data = Path(f"{dirpath}/../Data/lidar/danum")
 
 #%%
 def run(i):
     tc = TreeChange(dir_data, (2013, 2014))
     tc.gather_all_runs()
-    params = tc.runs_index.sample().iloc[0]
-    tc.load_data(params)  # create_diff=True if needed
-    tc.match_trees()
-    tc.generate_tree_rasters(["old", "new", "diff"])
+    tc.load_run_random(load_rast=["all"])
     print(f"Done {i}")
 
 with ProcessPoolExecutor(max_workers = 8) as pool:

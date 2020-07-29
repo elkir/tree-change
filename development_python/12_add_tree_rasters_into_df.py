@@ -40,7 +40,7 @@ try:
 except:
     dirpath = Path(os.getcwd())/"development_python"
 
-dir_data = Path(f"{dirpath}/../Data/lidar")
+dir_data = Path(f"{dirpath}/../Data/lidar/danum")
 #%%
 tc = TreeChange(dir_data,(2013,2014))
 
@@ -54,15 +54,13 @@ tc.gather_all_runs(print_validity=True)
 #%%
 print("Load and match trees")
 
-params = tc.runs_index.sample().iloc[0]
-tc.load_data(params) #create_diff=True if needed
-tc.match_trees()
+rn = tc.load_run_random(load_rast=[])
 
 tc.print()
 
-tc.generate_tree_rasters()
+rn.generate_tree_rasters()
 tc.print()
-tc.generate_tree_rasters(["old", "new", "diff"])
+rn.generate_tree_rasters(["old", "new", "diff"])
 tc.print()
 #
 # print(tc._tt)

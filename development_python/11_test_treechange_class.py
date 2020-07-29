@@ -39,7 +39,7 @@ try:
 except:
     dirpath = Path(os.getcwd())/"development_python"
 
-dir_data = Path(f"{dirpath}/../Data/lidar")
+dir_data = Path(f"{dirpath}/../Data/lidar/danum")
 #%%
 tc = TreeChange(dir_data,(2013,2014))
 

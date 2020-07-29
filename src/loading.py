@@ -31,12 +31,12 @@ class Load:
         """
         self.dir_data = Path(dir_data).resolve()
         # self.dir_data = self.dir_data.resolve()
-        self.dir_chm = self.dir_data / "raster"
+        self.dir_chm = self.dir_data / "rasters"
         self.dir_diff = self.dir_chm
-        self.dir_treetops = self.dir_data / "vector" / "treetops"
-        self._dir_crowns_r = self.dir_data / "raster" / "crowns"
-        self.dir_crowns_v = self.dir_data / "vector" / "crowns"
-        self.ff_index_crowns = self._dir_crowns_r / "index.txt"
+        self.dir_treetops = self.dir_data / "treetops"
+        self._dir_crowns_r = self.dir_data / "crowns"  / "raster"
+        self.dir_crowns_v = self.dir_data / "crowns" / "vector"
+        self.ff_index_crowns = self.dir_data / "index.txt"
 
         self.load_cr = partial(Load.load_cr,dir=self.dir_crowns_v)
         self.load_tt = partial(Load.load_tt,dir=self.dir_treetops)

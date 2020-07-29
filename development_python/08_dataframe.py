@@ -39,6 +39,9 @@ wss = [20]
 
 
 #%% Directories (using Pathlib)
+
+#NOTE outdated directory structure
+
 try:
     dirpath = Path(os.path.dirname(__file__))
 except:

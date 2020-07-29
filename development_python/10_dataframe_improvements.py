@@ -48,7 +48,7 @@ try:
 except:
     dirpath = Path(os.getcwd())/"development_python"
 
-dir_data = Path(f"{dirpath}/../Data/lidar")
+dir_data = Path(f"{dirpath}/../Data/lidar/danum")
 load=Load(dir_data)
 
 ff_index_crowns = load._dir_crowns_r/"index.txt"

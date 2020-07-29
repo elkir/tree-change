@@ -156,19 +156,40 @@ class TreeChange():
                 self.create_diff()
                 self.diff = self.load.load_diff()
                 self._diff_arr = self.diff.read(1, masked=True)
+            else:
+                raise TypeError("Ony int index and an entry from runs_index accepted.")
 
-    def load_run_random(self,overwrite=False,load_val = True,load_nn=True,load_rast=True):
+    def load_run(self,par,overwrite=False,load_val = True,load_nn=True,load_rast=['old']):
+        if isinstance(par,int):
+            return self._load_run_by_index(par,overwrite,load_val,load_nn,load_rast)
+        elif isinstance(par,pd.Series):
+            if not overwrite and (par.name in self.runs_index[self.runs.notna()].index):
+                return
+            return self._load_run_by_params(par,load_val,load_nn,load_rast)
+
+    def load_run_random(self,overwrite=False,load_val = True,load_nn=True,load_rast=['old']):
         if overwrite:
             params = self.runs_index.sample().iloc[0]
         else:
             params = self.runs_index[self.runs.isna()].sample().iloc[0]
+        return self._load_run_by_params(params,load_val,load_nn,load_rast)
+
+    def _load_run_by_index(self,index,overwrite=False,**kwargs):
+        if not(overwrite) and (index in self.runs_index[self.runs.notna()].index):
+           return
+        else:
+            params = self.runs_index[index]
+            return self._load_run_by_params(params,**kwargs)
+
+    def _load_run_by_params(self,params,overwrite=False,load_val = True,load_nn=True,load_rast=['old']):
+        #overwrites by default
         run = SegmentationRun(params,self)
         if load_val:
             run.load_data()
             if load_nn:
                 run.match_trees()
             if load_rast:
-                run.generate_tree_rasters()
+                run.generate_tree_rasters(source=load_rast)
         self.runs[params.name] = run
         return run
 

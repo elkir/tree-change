@@ -26,7 +26,7 @@ try:
 except:
     dirpath = Path(os.getcwd())/"development_python"
 
-dir_data = Path(f"{dirpath}/../Data/lidar")
+dir_data = Path(f"{dirpath}/../Data/lidar/danum")
 
 #%%
 # def run(i):
