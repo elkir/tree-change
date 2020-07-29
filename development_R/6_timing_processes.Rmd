@@ -1,0 +1,147 @@
+```{r}
+## Libraries
+library(tidyverse)
+# library(purrr)
+# library(httr)
+# library(magrittr)
+
+library(raster)
+library(rgdal)
+library(lidR)
+library(spatial)
+library(stars)
+library(sf)
+
+library(functional)
+library(RColorBrewer)
+
+library(glue)
+library(furrr)
+
+library(tictoc)
+# future::plan(multiprocess)
+```
+
+```{r}
+years <- c(2013,2014)
+ws <-c(20)
+```
+
+```{r}
+
+dir_data <-"../Data/lidar"
+```
+```{r}
+dir_chm <- paste(dir_data,"raster",sep="/")
+dir_treetops <- paste(dir_data,"vector","treetops",years,sep="/")
+
+dir_crowns <- paste(dir_data,"raster","crowns",years,sep = "/")
+walk(dir_crowns,dir.create)
+
+filename_crowns_index <- paste(dir_data,"raster","crowns","index.txt",sep="/")
+filename_crowns_errors <- paste(dir_data,"raster","crowns","errors.txt",sep="/")
+
+```
+```{r}
+## Read rasters
+chm_filenames <- paste0(dir_chm,"/raster",years,".tif")
+chms <- map(chm_filenames,raster)
+```
+
+```{r}
+tic()
+tt5 = lidR::tree_detection(chms[[1]],lmf(5))
+toc()
+
+tic()
+tt20 = lidR::tree_detection(chms[[1]],lmf(20))
+toc()
+
+tic()
+tt30 = lidR::tree_detection(chms[[1]],lmf(30))
+toc()
+
+```
+```{r}
+tic()
+cr_d = dalponte2016(chms[[1]],tt20,max_cr = 50)()
+toc()
+
+tic()
+cr_s = silva2016(chms[[1]],tt20,max_cr_factor = 0.4)() 
+toc()
+```
+```{r}
+ex=chms[[1]]@extent
+ex = extent(ex@xmin,mean(c(ex@xmin,ex@xmax)),ex@ymin,mean(c(ex@ymax,ex@ymin)))
+ex = extent(ex@xmin,mean(c(ex@xmin,ex@xmax)),ex@ymin,mean(c(ex@ymax,ex@ymin)))
+crc_s = crop(cr_s,ex)
+```
+
+```{r}
+
+
+plot(crc_s,col=pastel.colors(1000))
+```
+
+
+
+```{r}
+
+read_treetops <- function(year,ws){
+  filename <-paste0("treetops_lmf_ws",ws,".json")
+  filename_full <- paste("/home/lune/Data/ai4er/mres/lidar_new_structure/danum","treetops",year,filename,sep = "/")
+  readOGR(filename_full)
+}
+read_crowns <- function(alg_name){
+  filename <-paste0("2013_18_",alg_name,".shp")
+  filename_full <- paste("/home/lune/Data/ai4er/mres/lidar_new_structure/danum","crowns","vector","old",filename,sep = "/")
+  readOGR(filename_full)
+}
+```
+```{r}
+tt18 <- read_treetops(2013,18)
+cro_s <- read_crowns('silva')
+cro_d <- read_crowns('dalponte')
+```
+
+```{r}
+plot(cro_s)
+plot(cr,add=T)
+plot(tt,add=T,cex=1.3)
+```
+
+
+```{r,fig.width=8,fig.height=7.45}
+
+# Silva
+ex=chms[[1]]@extent
+n=5
+ex = extent(ex@xmin+2*(ex@xmax-ex@xmin)/n,ex@xmin+3*(ex@xmax-ex@xmin)/n,
+  ex@ymin+2*(ex@ymax-ex@ymin)/n,ex@ymin+3*(ex@ymax-ex@ymin)/n)
+# tt = crop(tt18,ex)
+# crs = crop(cro_s,ex)
+r = crop(chms[[1]],ex)
+plot(r,legend.shrink=0.8,legend.width=2)
+plot(cro_s,add=T)
+plot(tt18,add=T,col='red')
+# axis.args=list(cex.axi)
+# set.colorbar(cex=1.5)
+```
+```{r,fig.width=8,fig.height=7.45}
+
+# Dalponte
+ex=chms[[1]]@extent
+n=5
+ex = extent(ex@xmin+2*(ex@xmax-ex@xmin)/n,ex@xmin+3*(ex@xmax-ex@xmin)/n,
+  ex@ymin+2*(ex@ymax-ex@ymin)/n,ex@ymin+3*(ex@ymax-ex@ymin)/n)
+# tt = crop(tt18,ex)
+# crs = crop(cro_s,ex)
+r = crop(chms[[1]],ex)
+plot(r,legend.shrink=0.8,legend.width=2)
+plot(cro_d,add=T)
+plot(tt18,add=T,col='red')
+# axis.args=list(cex.axi)
+# set.colorbar(cex=1.5)
+```
+
