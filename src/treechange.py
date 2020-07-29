@@ -98,7 +98,9 @@ class TreeChange():
         else:
             printb(f"\tfile: {self.load.ff_index_crowns.relative_to(self.load.dir_data)}")
             printb(f"\tNumber: {len(self.runs_index)}")
-            printb(f"\tWS: {self.runs_index.ws.value_counts().sort_index().to_dict().__repr__()}")
+            ws_dict= self.runs_index.ws.value_counts().sort_index().to_dict().__repr__()
+            printb(f"\tWS: {ws_dict.keys()}")
+            printb(f"\t    {ws_dict.values()}")
         printb("Runs loaded:")
         n_loaded=self.runs.count()
         printb(f"\tNumber: {n_loaded}")
@@ -107,7 +109,7 @@ class TreeChange():
         else:
             sample_runs = self.runs[self.runs.notnull()]
             if n_loaded > runs_limit:
-                printb("\t(Samples only)")
+                printb("\t(run samples only)")
                 sample_runs = sample_runs.sample(runs_limit)
             for k, v in sample_runs.iteritems():
                 printb(f"\tRun {k}")
@@ -269,8 +271,9 @@ class SegmentationRun():
 
         self.df = self._cr.old.copy()
         self.df = self.df.rename(columns={"DN": "treeID"}).set_index("treeID")
+        def exterior(x): return shapely.geometry.Polygon(x)
         if not (self.flag_interiors):
-            self.df['geometry'] = self.df.geometry.exterior.map(lambda x: shapely.geometry.Polygon(x))
+            self.df['geometry'] = self.df.geometry.exterior.map(exterior)
 
     # Expand DataFrame
     def find_missing_trees(self):
@@ -278,8 +281,9 @@ class SegmentationRun():
 
     def match_trees(self, overwrite=False, alt=False, n=2):
         def cKDnearest2(gdfA, gdfB):
-            nA = np.array(list(gdfA.geometry.apply(lambda x: (x.x, x.y))))
-            nB = np.array(list(gdfB.geometry.apply(lambda x: (x.x, x.y))))
+            def coords(p): return (p.x, p.y)
+            nA = np.array(list(gdfA.geometry.apply(coords)))
+            nB = np.array(list(gdfB.geometry.apply(coords)))
             btree = cKDTree(nB)
             dist, idx = btree.query(nA, k=2)
             gdf = pd.concat(
@@ -291,8 +295,9 @@ class SegmentationRun():
             return gdf
 
         # def ckdnearest2_alt(gdA, gdB):
-        #     nA = np.array(list(gdA.geometry.apply(lambda x: (x.x, x.y))))
-        #     nB = np.array(list(gdB.geometry.apply(lambda x: (x.x, x.y))))
+        #     def coords(p): return (p.x, p.y)
+        #     nA = np.array(list(gdfA.geometry.apply(coords)))
+        #     nB = np.array(list(gdfB.geometry.apply(coords)))
         #     btree = cKDTree(nB)
         #     dist, idx = btree.query(nA, k=2)
         #     nn1 = pd.concat([gdB.loc[idx[:, 0], gdB.columns != 'geometry'].reset_index(drop=True),
@@ -354,7 +359,7 @@ class SegmentationRun():
             if col_name in self.df.columns and not(overwrite):
                 return
 
-            fun = lambda tree: _mask_tree(tree,raster,raster_arr,cropped)
+            def fun(tree): return _mask_tree(tree,raster,raster_arr,cropped)
             if geometry is None:
                 geometry = self.df.geometry
             tree_rasters = geometry.map(fun)

@@ -49,7 +49,7 @@ run.load_data()
 run.match_trees()
 run.generate_tree_rasters()
 
-tc.print()
+# tc.print()
 
 tc.load_run_random()
-tc.print()
+# tc.print()

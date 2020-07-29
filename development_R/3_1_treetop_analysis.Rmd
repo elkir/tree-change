@@ -14,6 +14,8 @@ library(RColorBrewer)
 
 library(glue)
 library(furrr)
+
+library(tictoc)
 # future::plan(multiprocess)
 ```
 
@@ -24,7 +26,8 @@ ws <-c(20)
 
 ```{r}
 dir_data <-"../Data/lidar"
-
+```
+```{r}
 dir_chm <- paste(dir_data,"raster",sep="/")
 dir_treetops <- paste(dir_data,"vector","treetops",years,sep="/")
 
