@@ -98,22 +98,25 @@ class TreeChange():
         else:
             printb(f"\tfile: {self.load.ff_index_crowns.relative_to(self.load.dir_data)}")
             printb(f"\tNumber: {len(self.runs_index)}")
-            ws_dict= self.runs_index.ws.value_counts().sort_index().to_dict().__repr__()
-            printb(f"\tWS: {ws_dict.keys()}")
-            printb(f"\t    {ws_dict.values()}")
+            ws_dict= self.runs_index.ws.value_counts().sort_index().to_dict()
+            printb(f"\tWS: {list(ws_dict.keys())}")
+            printb(f"\t    {list(ws_dict.values())}")
         printb("Runs loaded:")
-        n_loaded=self.runs.count()
-        printb(f"\tNumber: {n_loaded}")
-        if n_loaded <=0:
-            ...
+        if self.runs is None:
+            printb(f"\t No runs loaded")
         else:
-            sample_runs = self.runs[self.runs.notnull()]
-            if n_loaded > runs_limit:
-                printb("\t(run samples only)")
-                sample_runs = sample_runs.sample(runs_limit)
-            for k, v in sample_runs.iteritems():
-                printb(f"\tRun {k}")
-                printb(utils.prepend_tabs(v.print(return_string=True),2))
+            n_loaded=self.runs.count()
+            printb(f"\tNumber: {n_loaded}")
+            if n_loaded <=0:
+                ...
+            else:
+                sample_runs = self.runs.dropna()
+                if n_loaded > runs_limit:
+                    printb("\t(run samples only)")
+                    sample_runs = sample_runs.sample(runs_limit)
+                for k, v in sample_runs.iteritems():
+                    printb(f"\tRun {k}")
+                    printb(utils.prepend_tabs(v.print(return_string=True),2))
 
 
         #TODO check whether all status is printed
@@ -137,7 +140,7 @@ class TreeChange():
             print(f"Of those valid: {b}")
             print(f"Ratio {b/a}")
         if valid_only:
-            self.runs_index = self.runs_index[i_seed_less_than_cr].reset_index()
+            self.runs_index = self.runs_index[i_seed_less_than_cr]
         print("Index of runs computed.")
 
         self.runs = pd.Series(index=self.runs_index.index, name="runs", dtype=object)
@@ -161,24 +164,24 @@ class TreeChange():
 
     def load_run(self,par,overwrite=False,load_val = True,load_nn=True,load_rast=['old']):
         if isinstance(par,int):
-            return self._load_run_by_index(par,overwrite,load_val,load_nn,load_rast)
+            return self._load_run_by_index(par,overwrite=overwrite,load_val=load_val,load_nn=load_nn,load_rast=load_rast)
         elif isinstance(par,pd.Series):
             if not overwrite and (par.name in self.runs_index[self.runs.notna()].index):
                 return
-            return self._load_run_by_params(par,load_val,load_nn,load_rast)
+            return self._load_run_by_params(par,load_val=load_val,load_nn=load_nn,load_rast=load_rast)
 
     def load_run_random(self,overwrite=False,load_val = True,load_nn=True,load_rast=['old']):
         if overwrite:
             params = self.runs_index.sample().iloc[0]
         else:
             params = self.runs_index[self.runs.isna()].sample().iloc[0]
-        return self._load_run_by_params(params,load_val,load_nn,load_rast)
+        return self._load_run_by_params(params,load_val=load_val,load_nn=load_nn,load_rast=load_rast)
 
     def _load_run_by_index(self,index,overwrite=False,**kwargs):
         if not(overwrite) and (index in self.runs_index[self.runs.notna()].index):
            return
         else:
-            params = self.runs_index[index]
+            params = self.runs_index.loc[index]
             return self._load_run_by_params(params,**kwargs)
 
     def _load_run_by_params(self,params,overwrite=False,load_val = True,load_nn=True,load_rast=['old']):

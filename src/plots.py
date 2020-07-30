@@ -1,6 +1,8 @@
 
 
 import matplotlib.pyplot as plt
+import matplotlib.colors
+from matplotlib import cm
 
 import rasterio
 import shapely
@@ -11,6 +13,36 @@ from copy import copy
 from pandas import Series
 from shapely.geometry import Polygon
 import geopandas as gpd
+import numpy as np
+
+###################
+### Set Colormaps
+def _get_color_mapping_chm():
+    cmap_CHM = plt.cm.get_cmap('viridis',64)
+    norm = matplotlib.colors.Normalize(0,70)
+    color_mapping_CHM = matplotlib.cm.ScalarMappable(norm=norm,cmap=cmap_CHM)
+    return color_mapping_CHM
+
+def _get_color_mapping_diff():
+    top = cm.get_cmap('Greens_r', 128)
+    bottom = cm.get_cmap('RdPu', 128)
+    newcolors = np.vstack((top(np.linspace(0, 1, 128)),
+                           bottom(np.linspace(0, 1, 128))))
+    cmap_diff = matplotlib.colors.ListedColormap(newcolors, name='chm_diff')
+    norm = matplotlib.colors.TwoSlopeNorm(0,-50,+50)
+    color_mapping_diff = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap_diff)
+    return color_mapping_diff
+
+
+color_mapping_diff = _get_color_mapping_diff()
+color_mapping_chm = _get_color_mapping_chm()
+# cmap_diff
+# cmap_diff_detialed
+#
+#
+
+
+
 
 def plot_raster_polygon(raster,polygon,ax=None,**kwargs): #TODO
     '''
