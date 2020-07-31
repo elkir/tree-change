@@ -17,37 +17,36 @@ future::plan(multiprocess)
 
 
 # directories
-dir_data <-"../Data/lidar/danum"
-dir_2013 <- paste(dir_data,"original_data", "ETH_2013_data",sep="/")
-dir_2014 <- paste(dir_data,"original_data", "NERC_2014_data",sep="/")
-dir_2013_raster <-  paste(dir_2013,"CHM_raster",sep="/")
-dir_2014_raster <-  paste(dir_2014,"CHM_raster",sep="/")
-filenames_2013 <- list.files(dir_2013_raster, full.names=TRUE)
-filenames_2014 <- list.files(dir_2014_raster, full.names=TRUE)
-
-
-## Build rasters
-# raster2013 <- do.call(merge,lapply(filenames_2013, raster))
-# raster2014 <- do.call(merge,lapply(filenames_2014, raster))
-# extIntersect  <- intersect(raster2013@extent,raster2014@extent)
-# rasters <- future_map(rasters,Curry(crop,y=extIntersect))
+dir_data <-"../Data/lidar/paracou"
+#dir_2013 <- paste(dir_data,"original_data", "ETH_2013_data",sep="/")
+#dir_2014 <- paste(dir_data,"original_data", "NERC_2014_data",sep="/")
+#dir_2013_raster <-  paste(dir_2013,"CHM_raster",sep="/")
+#dir_2014_raster <-  paste(dir_2014,"CHM_raster",sep="/")
+##filenames_2013 <- list.files(dir_2013_raster, full.names=TRUE)
+##filenames_2014 <- list.files(dir_2014_raster, full.names=TRUE)
+##
+##
+#### Build rasters
+## raster2013 <- do.call(merge,lapply(filenames_2013, raster))
+## raster2014 <- do.call(merge,lapply(filenames_2014, raster))
+## extIntersect  <- intersect(raster2013@extent,raster2014@extent)
+## rasters <- future_map(rasters,Curry(crop,y=extIntersect))
 
 ## Load rasters
-raster2013 = raster(paste(dir_data,"rasters","raster2013.tif",sep="/"))
-raster2014 = raster(paste(dir_data,"rasters","raster2014.tif",sep="/"))
+raster2016 <- raster(paste(dir_data, "rasters", "raster2016.tif", sep="/"))
+raster2019 <- raster(paste(dir_data, "rasters", "raster2019.tif", sep="/"))
 
 
-rasters <- c("2013"=raster2013,"2014"=raster2014)
+rasters <- c("2016"=raster2016,"2019"=raster2019)
 
 # define functions
 write_treetops_parameters <- function(data, year,ws) {
   dirname <- paste(dir_data,"treetops",year,sep="/")
-  filename <- paste0(dirname,"/","treetops_lmf_ws",ws,".json")
+  filename <- paste0(dirname,"/","treetops_lmf_ws",ws)
   writeOGR(data,
            filename,
            paste0(year,"_ws",ws),
-           driver="GeoJSON")
-            #FIXME write in "ESRI Shapefile" s to preserve CRS
+           , driver="ESRI Shapefile")
 }
 
 
@@ -57,18 +56,19 @@ single_run <- function(year,ws){
 }
 
 ### Parameters
-## Run1
-# years <- c("2013","2014")
-# sizes <- c(15:25)
+# Run1
+ years <- c("2016","2019")
+ sizes <- c(17:24)
+
 ## Run2
-# years <- c("2014")
+# years <- c("2019")
 # sizes <- c(15:16)
 ## Run3
-# years <- c("2013")
+# years <- c("2016")
 # sizes <- c(16)
 ## Run4
-years <- c("2014")
-sizes <- c(15,16,19,24)
+#years <- c("2019")
+#sizes <- c(15,16,19,24)
 
 
 # prepare output directories
@@ -77,12 +77,13 @@ walk(dir_output_treetops,~dir.create(., recursive=T))
 
 ## paralelize years
 double_run <- function(ws) {
+  print(ws)
   years %>%
-    future_map(~single_run(.,ws))
+    map(~single_run(.,ws))
 }
 
 ## run all the WS
 sizes %>%
-  future_map(double_run,.progress=T)
+  map(double_run)
 
 
