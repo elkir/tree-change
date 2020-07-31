@@ -179,7 +179,8 @@ class TreeChange():
 
     def _load_run_by_index(self,index,overwrite=False,**kwargs):
         if not(overwrite) and (index in self.runs_index[self.runs.notna()].index):
-           return
+            print(f"Run {index} already loaded.")
+            return self.runs.loc[index]
         else:
             params = self.runs_index.loc[index]
             return self._load_run_by_params(params,**kwargs)
@@ -300,8 +301,36 @@ class SegmentationRun():
             self.df['geometry'] = self.df.geometry.exterior.map(exterior)
 
     # Expand DataFrame
-    def find_missing_trees(self):
-        ...
+    def find_missing_trees(self, func=None,**kwargs):
+        if "diff_img" not in self.df:
+            self.generate_tree_rasters(['diff'])
+
+        if func is None:
+            is_missing=self._missing_by_threshold(**kwargs)
+        else:
+            is_missing=self.df["diff_img"].apply(func)
+
+        self.df=self.df.assign(is_missing=is_missing)
+        return is_missing
+
+    def _missing_by_threshold(self,threshold=None,keep_counts=True, pixel_ratio=0.2):
+        if threshold is None:
+            threshold=34
+        def pixels_above_threshold(thresh):
+            def func(arr):
+                arr=arr.flatten()
+                return np.sum(arr>thresh)
+            return func
+
+        counts = self.df["diff_img"].apply(pixels_above_threshold(threshold))
+        is_missing=counts/(self.df["area"]*4) > pixel_ratio
+        if keep_counts:
+            self.df = self.df.assign(missing_pixels=counts)
+        return is_missing
+
+
+
+
 
     def match_trees(self, overwrite=False, alt=False, n=2):
         def cKDnearest2(gdfA, gdfB):

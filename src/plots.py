@@ -174,5 +174,23 @@ def plot_raster(raster,ax=None,**kwargs):
         plt.show()
     return ax
 
-def plot_raster_cbar():
-    ...
+def plot_raster_cbar(raster,ax=None,cm=None,cbar=None,norm=None,**kwargs):
+    ##Fixme
+    show = False
+    if ax is None:
+        show = True
+        ax = plt.gca()
+
+    if cm is not None:
+        cmap=cm.cmap
+        norm=cm.norm
+    else:
+        if cbar is None or norm is None:
+            raise AttributeError("Must provide colormap or cm")
+
+    ax = plot_raster(raster,cmap=cmap,norm=norm)
+    cax = plt.colorbar(cm,ax=ax,use_gridspec=True)
+
+    if show:
+        plt.show()
+    return ax,cax
