@@ -97,8 +97,8 @@ widths = [5, 5, 0.2]
 spec = gridspec.GridSpec(ncols=3,nrows=2,figure=fig,width_ratios=widths)
 axes=[]
 axes.append(fig.add_subplot(spec[:,0]))
-axes.append(fig.add_subplot(spec[0,1]))
 axes.append(fig.add_subplot(spec[1,1]))
+axes.append(fig.add_subplot(spec[0,1]))
 axes.append(fig.add_subplot(spec[:,2]))
 
 ### Plot image
@@ -114,8 +114,10 @@ axes[0].get_yaxis().get_major_formatter().set_useOffset(False)
 #                     bottom=False, top=False,labelbottom=False,
 #                     right=False, left=False, labelleft=False)
 ### Plot histogram log
-n, bins, patches = axes[1].hist(arr.flatten(), 1000, log=True, histtype="bar")
-axes[1].hist(arr.flatten(), 1000, log=True, histtype="step", color='grey', linewidth=0.3)
+hist_param = dict(x=arr.flatten(),bins=1000,log=True,density=True)
+n, bins, patches = axes[1].hist(**hist_param,histtype="bar")
+
+axes[1].hist(**hist_param, histtype="step", color='grey', linewidth=0.3)
 
 # axes[1].set_xlim(-20,20)
 
@@ -145,39 +147,9 @@ cbar = fig.colorbar(color_mapping, cax=axes[3], extend='both')
 
 
 fig.show()
-fig.savefig("figures/05_chm-diff.png")
+# fig.savefig("figures/05_chm-diff.png")
 
 
-# %% CHM colormap
-cmap_CHM = plt.cm.get_cmap('viridis',64)
-norm = matplotlib.colors.Normalize(0,70)
-colorbar_CHM = matplotlib.cm.ScalarMappable(norm=norm,cmap=cmap_CHM)
 
-
-min=0
-max=60
-# arr= np.random.uniform(low=min,high=max,size=(64,64))
-# arr.reshape((arr.size//4,4)).sort(axis=1)
-# arr.reshape((64,64))
-arr=tc._chm_arr.old[:1000,:1000]
-
-
-## Plot
-# Plot image
-fig,axes = plt.subplots(1,2,figsize=(8,3))
-axes[0].imshow(arr,cmap=colorbar_CHM.cmap,norm=colorbar_CHM.norm)
-plt.colorbar(colorbar_CHM,ax=axes[0])
-
-# Plot histogram.
-n, bins, patches =axes[1].hist(arr.flatten(),1000)
-bin_centers = (bins[:-1] + bins[1:])/2
-
-# scale values to interval [0,1]
-col = colorbar_CHM.to_rgba(bin_centers)
-
-for c, p in zip(col, patches):
-    plt.setp(p, 'facecolor', c)
-
-fig.show()
 
 
