@@ -56,6 +56,7 @@ class TreeChange():
         self._chm_arr = None
         self._diff_arr = None
         self.runs= None
+        self.runs_values=None
 
         # flags
         self.flag_interiors = None
@@ -144,6 +145,7 @@ class TreeChange():
         print("Index of runs computed.")
 
         self.runs = pd.Series(index=self.runs_index.index, name="runs", dtype=object)
+        self.runs_values = pd.DataFrame(index=self.runs_index.index)
         return self.runs_index if return_value else None
 
     def load_rasters(self,create_diff=False):
@@ -152,7 +154,7 @@ class TreeChange():
         try:
             self.diff = self.load.load_diff()
             self._diff_arr = self.diff.read(1, masked=True)
-        except FileNotFoundError:
+        except rasterio.RasterioIOError:
             print("Diff didn't exist on disk and couldn't be loaded. "
                   "Set create_diff True when loading to create it.")
             if create_diff:
@@ -162,20 +164,20 @@ class TreeChange():
             else:
                 raise TypeError("Ony int index and an entry from runs_index accepted.")
 
-    def load_run(self,par,overwrite=False,load_val = True,load_nn=True,load_rast=['old']):
+    def load_run(self,par,overwrite=False,load_val = True,load_nn=True,load_rast=['old'],**kwargs):
         if isinstance(par,int):
-            return self._load_run_by_index(par,overwrite=overwrite,load_val=load_val,load_nn=load_nn,load_rast=load_rast)
+            return self._load_run_by_index(par,overwrite=overwrite,load_val=load_val,load_nn=load_nn,load_rast=load_rast,**kwargs)
         elif isinstance(par,pd.Series):
             if not overwrite and (par.name in self.runs_index[self.runs.notna()].index):
                 return
-            return self._load_run_by_params(par,load_val=load_val,load_nn=load_nn,load_rast=load_rast)
+            return self._load_run_by_params(par,load_val=load_val,load_nn=load_nn,load_rast=load_rast,**kwargs)
 
-    def load_run_random(self,overwrite=False,load_val = True,load_nn=True,load_rast=['old']):
+    def load_run_random(self,overwrite=False,load_val = True,load_nn=True,load_rast=['old'],**kwargs):
         if overwrite:
             params = self.runs_index.sample().iloc[0]
         else:
             params = self.runs_index[self.runs.isna()].sample().iloc[0]
-        return self._load_run_by_params(params,load_val=load_val,load_nn=load_nn,load_rast=load_rast)
+        return self._load_run_by_params(params,load_val=load_val,load_nn=load_nn,load_rast=load_rast,**kwargs)
 
     def _load_run_by_index(self,index,overwrite=False,**kwargs):
         if not(overwrite) and (index in self.runs_index[self.runs.notna()].index):
@@ -185,7 +187,7 @@ class TreeChange():
             params = self.runs_index.loc[index]
             return self._load_run_by_params(params,**kwargs)
 
-    def _load_run_by_params(self,params,overwrite=False,load_val = True,load_nn=True,load_rast=['old']):
+    def _load_run_by_params(self,params,overwrite=False,load_val = True,load_nn=True,load_rast=['old'],store=True):
         #overwrites by default
         run = SegmentationRun(params,self)
         if load_val:
@@ -194,8 +196,46 @@ class TreeChange():
                 run.match_trees()
             if load_rast:
                 run.generate_tree_rasters(source=load_rast)
-        self.runs[params.name] = run
+        if store:
+            self.runs[params.name] = run
         return run
+
+    def map_over_runs_returns_single(self,func,name,index=None,write=True,progress=True,**load_kwargs):
+        if index is None:
+            index = self.runs_index.index
+
+        series = pd.Series(index=index,name=name)
+
+        for i in index:
+            rn = self.load_run(i,store=False,**load_kwargs)
+            series.at[i] = func(rn)
+            if progress:
+                print(i,end=", ")
+
+        if write:
+            self.runs_values=pd.concat([self.runs_values,series],axis=1)
+        return series
+
+    def map_over_runs_returns_series(self, func, index=None,write=True,progress=True, **load_kwargs):
+        if index is None:
+            index = self.runs_index.index
+
+        df = pd.DataFrame()
+
+        for i in index:
+            rn = self.load_run(i, store=False, **load_kwargs)
+            val = func(rn)
+            val.name=i
+            df.append(val)
+            if progress:
+                print(i,end=", ")
+        if write:
+            self.runs_values = pd.concat([self.runs_values, df], axis=1)
+        return df
+
+
+
+
 
 
 
@@ -204,8 +244,8 @@ class TreeChange():
 
     def create_diff(self):
         ff_diff = self.load.dir_diff / f"diff.tif"
-        diff_arr = self._chm_arr.old - self._chm_arr.new
-
+        diff_arr = self._chm_arr.old[0:-1,0:-1] - self._chm_arr.new
+        # TODO remove paracou condition
         with rasterio.open(
                 ff_diff, 'w', driver="GTiff",
                 **{k: self.chm[0].meta[k] for k in (
@@ -213,48 +253,24 @@ class TreeChange():
         ) as ds:
             ds.write(diff_arr, 1)
 
-    # Expand DataFrame
-    def find_missing_trees(self):
-        ...
 
 
 
-    def characterize_polygons(self):
-        ...
-        # area
-        # perimeter
-        # convex_perimeter
-        # convex_area
-        # major_axis
-        # minor_axis
-        # compactness
-        # eccentricity
-        # circularity
-        # sphericity
-        # convexity
-        # curl  # fibre length?
-        # solidity
-        # circular_variance  # different from sphericity?
-        # bending_energy
-        #
-        # major_axis_angle
-        #
-        # # requires values
-        # moments
 
 
 
-    # Plots
-    def plot_raster(self):
-        ...
 
-    def plot_tree(self):
-        #TODO
-        ...
-
-    def plot_tree_hist(self):
-        #TODO
-        ...
+    # # Plots in plots module
+    # def plot_raster(self):
+    #     ...
+    #
+    # def plot_tree(self):
+    #     #TODO
+    #     ...
+    #
+    # def plot_tree_hist(self):
+    #     #TODO
+    #     ...
 
 
 class SegmentationRun():

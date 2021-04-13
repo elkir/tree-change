@@ -106,4 +106,4 @@ class Load:
     def filename_from_params(year,params):
 
         return f"dalponte_{year}_{params['ws']:.0f}_seed{params['seed']:.5f}" \
-                   f"_cr{params['cr']:.6f}_max{params['max']:.3f}.json"  # TODO fix number of figures
+                   f"_cr{params['cr']:.6f}_max{params['max']:.3f}.json"  # TODO fix number of figures #TODO JSON

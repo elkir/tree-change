@@ -120,7 +120,7 @@ ax.axis("off")
 ax.set_title(title)
 
 ### Plot chm diff
-ax,r,colmap,pol_c,title =ax_diff, tc.diff,colmp_diff,'yellow',"CHM 2014-CHM 2013"
+ax,r,colmap,pol_c,title =ax_diff, tc.diff,colmp_diff,'cyan',"CHM 2014-CHM 2013"
 
 plots.plot_raster(r,ax=ax,cmap=colmap.cmap, norm=colmap.norm)
 rn._tt.old.plot(marker=',',markersize=0.5,color='k',ax=ax)
@@ -148,6 +148,10 @@ cbar = fig.colorbar(colmp_diff, cax=ax_cbarR, extend='both')
 
 
 ### Text
+xmin= round(xmin)
+xmax= round(xmax)
+ymin= round(ymin)
+ymax= round(ymax)
 text = f" coordinates: UTM 50 N    " \
        f"{xmin}–{xmax}    " \
        f"{ymin}–{ymax}"

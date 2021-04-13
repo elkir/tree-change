@@ -37,7 +37,7 @@ def _get_color_mapping_diff():
 color_mapping_diff = _get_color_mapping_diff()
 color_mapping_chm = _get_color_mapping_chm()
 # cmap_diff
-# cmap_diff_detialed
+# cmap_diff_detailed
 #
 #
 
