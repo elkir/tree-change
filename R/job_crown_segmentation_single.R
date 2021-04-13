@@ -18,7 +18,7 @@ future::plan(multiprocess,workers = 4)
 
 years <- c(2016,2019)
 # ws <-c(20)
-ws <-c(15,16,17,18,19,21,22,23,24,25)
+ws <-c(16,17)
 
 
 ## Directories
@@ -63,7 +63,7 @@ glue_fmt <- function(..., .envir = parent.frame()) {
 ### Functions
 
 read_treetops <- function(year,ws){
-  filename <-paste0("treetops_lmf_ws",ws,".shp") # SHP of JSON?
+  filename <-paste0("treetops_lmf_ws",ws) # SHP of JSON?
   filename_full <- paste(dir_data,"treetops",year,filename,sep = "/")
   readOGR(filename_full)
 }
@@ -97,7 +97,8 @@ single_run <- function(iYear,ws,th_seed,th_cr,max_cr){
 
 double_run <- function(ws,th_seed,th_cr,max_cr){
   c(1,2) %>%
-    future_map(~single_run(.,ws,th_seed,th_cr,max_cr))%>%
+    # future_map(~single_run(.,ws,th_seed,th_cr,max_cr))%>%
+    map(~single_run(.,ws,th_seed,th_cr,max_cr))%>%
     {.}
   cat(c(ws,th_seed,th_cr,max_cr),"\n",file=filename_crowns_index,append=T)
   print(paste(c(ws,th_seed,th_cr,max_cr)))
@@ -107,8 +108,8 @@ random_run <- function() {
   th_cr = 0.0
   # ensure seed threshold higher than cr threshold
   while (th_seed>th_cr){
-    th_seed=runif(1,min=0.2,max=0.7)
-    th_cr=runif(1,min=0.3,max=0.8)
+    th_seed=runif(1,min=0.3,max=0.6)
+    th_cr=runif(1,min=0.4,max=0.7)
   }
   max_cr=runif(1,min=40,max=70)
   ws_rand = sample(ws,1)
@@ -122,8 +123,9 @@ random_run <- function() {
 }
 
 ## Parallel run
-c(1:168) %>%
-  future_map(~random_run())
+c(1:2) %>%
+  # future_map(~random_run())
+  map(~random_run())
 
 
 

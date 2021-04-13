@@ -1,5 +1,5 @@
 library(tidyverse)
-# library(purrr)
+library(purrr)
 # library(httr)
 # library(magrittr)
 
@@ -58,7 +58,7 @@ single_run <- function(year,ws){
 ### Parameters
 # Run1
  years <- c("2016","2019")
- sizes <- c(17:24)
+ sizes <- c(14)
 
 ## Run2
 # years <- c("2019")
